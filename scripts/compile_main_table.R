@@ -22,7 +22,5 @@ agb_data <- read_csv("data/input_data/original/country_agb.csv") %>%
 
 # Belowground biomass?
 
-
 # Soil Organic Carbon
-rovai_soc <- read_xlsx("data/rovai_2018_table.xlsx", skip = 7)
 

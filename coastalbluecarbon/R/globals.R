@@ -1,0 +1,6 @@
+globalVariables(
+  c(
+    "cores",
+    "depthseries"
+  )
+)
