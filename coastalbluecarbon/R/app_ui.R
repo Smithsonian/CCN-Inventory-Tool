@@ -67,7 +67,7 @@ app_ui <- function(request) {
           # select the tier
           radioButtons(inputId = "chosen_type",
                        label = "Select a carbon stock type",
-                       choices = c("Soil", "Biomass"),
+                       choices = c("Soil", "Biomass", "Total Ecosystem"),
                        selected = "Soil"),
           br(),
 

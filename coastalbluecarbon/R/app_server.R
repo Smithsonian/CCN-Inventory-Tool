@@ -20,7 +20,7 @@ app_server <- function(input, output, session) {
   ## Side Panel ----
   # render text
   output$sidetext <- renderText({
-    "Hello user, enter your input here:"
+    "Welcome to the Coastal Carbon Inventory Tool!"
   })
 
   ## Main Panel ----
@@ -137,6 +137,35 @@ app_server <- function(input, output, session) {
               rownames = FALSE)
   })
 
+  # Another Plot ----
+  # output$countryhab <- renderPlot({
+  #
+  #   if(input$chosen_habitat == "mangrove"){
+  #     vline <- 386
+  #   } elseif(input$chosen_habitat == "marsh"){
+  #     vline <- 255
+  #   } else {
+  #     vline <- 0
+  #   }
+  #
+  #   coredata() %>%
+  #     drop_na(stock_MgHa) %>%
+  #     group_by(country, habitat) %>%
+  #     summarize(n = n(),
+  #               stock_mean = mean(stock_MgHa, na.rm = T),
+  #               stock_se = sd(stock_MgHa, na.rm = T)) %>%
+  #     filter(habitat == input$chosen_habitat) %>%
+  #     mutate(country = paste0(country, ", n = ", n),
+  #            country = fct_reorder(country, stock_mean)) %>%
+  #     ggplot(aes(stock_mean, country,
+  #                xmin = stock_mean - stock_se, xmax = stock_mean + stock_se)) +
+  #     geom_point() +
+  #     geom_errorbar() +
+  #     geom_vline(aes(xintercept = vline), col = "red") + # global average..though this might be for total carbon
+  #     xlab("Carbon Stocks (MgC ha-1)") +
+  #     ggtitle(paste0("1m Core C Stocks by Country for ", input$chosen_habitat)) +
+  #     theme_bw()
+  # })
 
   # mod_stocks_server("stocks_1")
   # mod_choice_server("choice_1", r = r)
