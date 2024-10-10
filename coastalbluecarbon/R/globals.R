@@ -1,6 +1,0 @@
-globalVariables(
-  c(
-    "cores",
-    "depthseries"
-  )
-)
