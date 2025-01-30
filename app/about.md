@@ -4,7 +4,8 @@ Welcome to the Coastal Carbon Inventorying tool, developed by the Coastal Carbon
 
 ### Purpose of this interface
 
-`r nrow(tier2data)`
+This interface serves as a tool to 
+
 
 ### How to use
 

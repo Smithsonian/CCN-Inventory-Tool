@@ -90,6 +90,7 @@ function(input, output, session) {
       dplyr::filter(country == input$chosen_country) %>% 
       ggplot2::ggplot() + 
       geom_col(aes(habitat, area_ha, fill = habitat)) +
+      geom_errorbar(aes(xmin = hectare_LowerCI, xmax  = hectare_UpperCI), width = 0.1) +
       coord_flip() +
       ylab("Area (hectares)") + theme_bw(base_size = 20) +
       theme(legend.position = "bottom")
@@ -201,11 +202,17 @@ function(input, output, session) {
       "No data for this country. Go sample."
     } else{
       paste("Congratulations, you have data for this country! There are", 
-            length(unique(country_subset()$habitat)), "habitats.",
-            sep = " ")
+            length(unique(country_subset()$habitat)), "habitats represented.",
+            sep = " ",
+            "This tab includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass ecosystems.")
     }
     
   }) %>% bindEvent(input$go)
+  
+  #trying to render md in tab, might not work
+  # output$datainsight <- includeMarkdown() %>% 
+  #   bindEvent(input$go)
+  # 
   
   
   ## Value Boxes

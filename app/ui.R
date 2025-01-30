@@ -2,6 +2,9 @@
 
 # This is the user-interface definition of a Shiny web application.
 
+rmdfiles <- c("testdoc.Rmd")
+sapply(rmdfiles, knit, quiet = T) #transform .Rmd to .md to render below 
+
 # Application UI logic
 fluidPage(
   navbarPage("Coastal Carbon Inventory",
@@ -76,7 +79,8 @@ fluidPage(
                             
                             fluidRow(
                               tabsetPanel(type = "tabs",
-                                          tabPanel("Insight", textOutput("datainsight"), DTOutput("tec")),
+                                          tabPanel("Insight", includeMarkdown("testdoc.md")), #this renders .md
+                                          #tabPanel("Insight", textOutput("datainsight"), DTOutput("tec")),
                                           tabPanel("Table", DTOutput("maintable"))
                                           # tabPanel("TEC", p("TEC plot"))
                               ),
