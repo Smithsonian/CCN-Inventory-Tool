@@ -1,16 +1,17 @@
 ## Prepare Data for App Input
+#wolfejax@si.edu, cheneyr@si.edu
 
-library(dplyr)
+library(tidyverse)
 library(tidyr)
 library(readr)
 
-## Load Data ----
+## Load Data ####
 
 core_stocks_raw <- read_csv("data/soilstocks_1m.csv") #need to update these tables when 1.5.0 is published?
 biomass_stocks_raw <- read_csv("data/app_biomass_input.csv")
 #habitat_area <- read_csv("data/testdat_country_hab_area.csv") replaced with mangrove-marsh-seagrass version
 
-all_stocks_raw <- read_csv("data/all_stocks_table.csv")
+all_stocks_raw <- read_csv("app/data/all_stocks_table.csv")
 bibliography_raw <- read_csv("data/citations_by_country.csv")
 
 
@@ -22,7 +23,8 @@ guess_max <- nrow(read_csv("https://raw.githubusercontent.com/Smithsonian/CCN-Da
 impacts <- read_csv("https://raw.githubusercontent.com/Smithsonian/CCN-Data-Library/develop/data/CCN_synthesis/CCN_impacts.csv", 
                     guess_max = guess_max, na = "NA")
 
-## Cleaning & Calculations ---
+
+## Cleaning & Calculations ####
 
 ## Curate area table- making names match
 habitat_area <- all_stocks_raw %>% 
@@ -35,14 +37,14 @@ habitat_area <- all_stocks_raw %>%
 tier1stocks <- all_stocks_raw %>% 
   filter(TierIorII == "Tier I") %>% 
   janitor::remove_empty(which = c("rows", "cols")) %>% 
-  select(country, territory, habitat, TierI_mean, TierI_LowerCI, TierI_MgHa_UpperCI) %>% 
+  select(country, territory, habitat, TierI_mean, TierI_LowerCI, TierI_UpperCI) %>% 
   mutate(tier = "TierI",
          carbon_pool = "soil", #leave in? 
-         stock_MgHa_mean = TierI_mean,
-         stock_MgHa_lower = TierI_LowerCI,
-         stock_MgHa_upper = TierI_MgHa_UpperCI,
-  ) %>% 
-  select(-c(TierI_mean, TierI_MgHa_UpperCI, TierI_LowerCI))
+         ) %>% 
+  dplyr::rename(stock_MgHa_mean = TierI_mean,
+                stock_MgHa_lowerCI = TierI_LowerCI,
+                stock_MgHa_upperCI = TierI_UpperCI)
+
 
 
 ## Curate Tier I Data - Global Values
@@ -65,15 +67,16 @@ tier1stocks <- all_stocks_raw %>%
 #   arrange(country, habitat)  
 
 
-## Separate Tier II Data  - Country-level, Using stocks table calculated in CCN-Data-Analytics repo
+## Curate Tier II Data  - Country-level, Using stocks table calculated in CCN-Data-Analytics repo
 
 tier2stocks <- all_stocks_raw %>% 
   filter(TierIorII == "Tier II") %>% 
   #select(-c(hectare, hectare_UpperCI, hectare_LowerCI))
   select(country, territory, habitat, stock_MgHa_mean,
          stock_MgHa_se, stock_MgHa_upper_CI, stock_MgHa_lower_CI) %>% 
-  dplyr::rename(stock_MgHa_upper = stock_MgHa_upper_CI,
-         stock_MgHa_lower = stock_MgHa_lower_CI) %>% 
+  dplyr::rename(
+    stock_MgHa_upperCI = stock_MgHa_upper_CI,
+    stock_MgHa_lowerCI = stock_MgHa_lower_CI) %>% 
   mutate(tier = "TierII",
          carbon_pool = "soil") %>% 
   select(country, territory, habitat, tier, carbon_pool, everything())
@@ -83,10 +86,10 @@ tier2_list <- tibble(country = unique(tier2stocks$country))
   
 no_tier2 <- anti_join(habitat_area, tier2_list) %>% #list of countries included in habitat area without a tier 2 value associated 
   select(country) %>% unique()
-      #use this in country insights
+      #reference for country insights
     
 
-## Curate Tier II Data
+## Curate Tier II Data/CCA Data 
 
 ## Soils
 core_impacts <- impacts %>% 
@@ -181,7 +184,22 @@ EF_table <- all_stocks_raw %>%
   filter(complete.cases(compiled_EF))
 
 
-## Map input ----
+
+## Curate Tier III Remote Sensing values
+# countries with available Tier III values, from Sanderman et al 2018 and 
+tierIII <- all_stocks_raw %>% 
+  select(c(country, territory, habitat, TierIII_mean, TierIII_LowerCI, TierIII_UpperCI, 
+           tierIII_gtlt_tier_II, tierII_overlaps_tierIII, tierIII_gtlt_tier_I, tierIII_overlaps_tierI)) %>% 
+  filter(complete.cases(TierIII_mean)) %>% 
+  dplyr::rename(stock_MgHa_mean = TierIII_mean,
+                stock_MgHa_lowerCI = TierIII_LowerCI,
+                stock_MgHa_upperCI = TierIII_UpperCI) %>% 
+  mutate(tier = "Tier III") 
+
+
+
+
+## Map Input ####
 
 map_input <- core_stocks_raw %>% 
   drop_na(country) %>% 
@@ -193,18 +211,20 @@ map_input <- core_stocks_raw %>%
             latitude_min = min(latitude, na.rm = T)
   )
 
-## Export Data for App Use ----
+## Export Data for App Use ####
 
 app_data <- list(
   tier2data = tier2stocks,
   tier1data = tier1stocks,
+  tier3data = tierIII,
   emissionsfactors = EF_table,
   totalstocks = total_stock_habitat_country,
   landuse = habitat_area,
   map_input = map_input,
-  citations = bibliography_raw
+  citations = bibliography_raw,
+  map_cores = stocks
   )
 
 # export
 saveRDS(app_data, file = "app/data/app_data.rds")
-
+rm(app_data) #removes from environment to run global script 

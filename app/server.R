@@ -51,7 +51,7 @@ function(input, output, session) {
                   # fill = FALSE, 
                   group = "Border") %>% 
       # add data points
-      addCircleMarkers(data = tier2data %>% drop_na(latitude) %>% filter(country == input$chosen_country), 
+      addCircleMarkers(data = map_stocks %>% drop_na(latitude) %>% filter(country == input$chosen_country), 
                        lng = ~longitude, lat = ~latitude, radius = 2,
                        group = "Cores") %>%
       
@@ -71,12 +71,12 @@ function(input, output, session) {
   ## Emission Factor plot
   output$efplot <- renderPlotly({
     ggplotly(
-      ggplot(country_subset(), aes(`stock (Mg/ha)`, habitat, col = tier)) +
+      ggplot(country_subset(), aes(stock_MgHa_mean, habitat, col = tier)) +
         # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
-        geom_errorbar(aes(xmin = stock_MgHa_lower, xmax  = stock_MgHa_upper), width = 0.1) +
+        geom_errorbar(aes(xmin = stock_MgHa_lowerCI, xmax  = stock_MgHa_upperCI), width = 0.1) +
         geom_point(size = 2, shape = 21, fill="white") +
         theme_bw() +
-        facet_wrap(~`carbon type`, 
+        facet_wrap(~`carbon_pool`, 
                    # scales = "free", 
                    dir = "v") +
         theme(legend.position = "bottom") 
@@ -87,10 +87,11 @@ function(input, output, session) {
   output$activityplot <- renderPlot({
     
     landuse %>% 
+      #dplyr::filter(complete.cases(area_ha)) %>% 
       dplyr::filter(country == input$chosen_country) %>% 
       ggplot2::ggplot() + 
       geom_col(aes(habitat, area_ha, fill = habitat)) +
-      geom_errorbar(aes(xmin = hectare_LowerCI, xmax  = hectare_UpperCI), width = 0.1) +
+      geom_errorbar(aes(x= habitat, ymin = hectare_LowerCI, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
       coord_flip() +
       ylab("Area (hectares)") + theme_bw(base_size = 20) +
       theme(legend.position = "bottom")
@@ -100,10 +101,11 @@ function(input, output, session) {
 
   
   ## Tables --------------
+  #maintable 
   output$maintable <- renderDT({
       
     country_subset() %>% 
-      select(-c(stock_MgHa_lower, stock_MgHa_upper)) %>% 
+      select(-c(stock_MgHa_lowerCI, stock_MgHa_upperCI)) %>% 
       DT::datatable(caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_country),
                     options = list(searching = FALSE,
                                    paging = FALSE,
@@ -116,12 +118,46 @@ function(input, output, session) {
     bindEvent(input$go)
   
   
+  
+  #trying out a figure for the 'Data Status' tab, quantity, quality, coverage 
+  output$datastatus <- renderPlot({
+    
+    #case where there are cores available in CCA 
+    #if(input$chosen_country %in% datastatus_counts$country){
+      
+      # quantity_table <- datastatus_counts %>% 
+      #   dplyr::filter(country == input$chosen_country) %>% 
+      #   mutate(data_tier_available = ifelse(!is.na(n_cores), "Tier II", "Tier I"))
+      
+      datastatus_counts %>% 
+        dplyr::filter(country == input$chosen_country) %>% 
+        ggplot2::ggplot() + 
+        geom_col(aes(habitat, n_cores, fill = habitat)) +
+       # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+        coord_flip() +
+        ylab("Number of Cores") + theme_bw(base_size = 20) +
+        theme(legend.position = "bottom")
+      
+        
+    # } else {
+    #   table_other <- tibble(country = input$chosen_country,
+    #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
+    #                         data_tier_available = "Tier I")
+    # }
+    
+  }) %>% 
+      bindEvent(input$go)
+  
+  
+    
+    
+    
   output$tec <- renderDT({
     
     # Case: there is in-country data
     if(input$chosen_country %in% tier2data$country){
       tec_table <- tier2data %>%
-        tidyr::drop_na(country, habitat, stock_MgHa) %>%
+        tidyr::drop_na(country, habitat, stock_MgHa_mean) %>%
         dplyr::filter(country == input$chosen_country) %>%
         
         # add tier I data
@@ -193,28 +229,23 @@ function(input, output, session) {
 
   ################################################
   
-  ## Conditional Insight
+  ## Conditional Insight - replaced by country_insight.md
   
-  output$datainsight <- renderText({
-    
-    # Case: no in country data 
-    if(!input$chosen_country %in% unique(tier2data$country)){
-      "No data for this country. Go sample."
-    } else{
-      paste("Congratulations, you have data for this country! There are", 
-            length(unique(country_subset()$habitat)), "habitats represented.",
-            sep = " ",
-            "This tab includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass ecosystems.")
-    }
-    
-  }) %>% bindEvent(input$go)
-  
-  #trying to render md in tab, might not work
-  # output$datainsight <- includeMarkdown() %>% 
-  #   bindEvent(input$go)
+  # output$datainsight <- renderText({
+  #   
+  #   # Case: no in country data 
+  #   if(!input$chosen_country %in% unique(tier2data$country)){
+  #     "No data for this country. Go sample."
+  #   } else{
+  #     paste("Congratulations, you have data for this country! There are", 
+  #           length(unique(country_subset()$habitat)), "habitats represented.",
+  #           sep = " ",
+  #           "This tab includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass ecosystems.")
+  #   }
+  #   
+  # }) %>% bindEvent(input$go)
   # 
-  
-  
+  # 
   ## Value Boxes
   ## Won't work without Shiny dashboard
   # output$num_cores <- renderValueBox({
@@ -247,4 +278,4 @@ function(input, output, session) {
   # Call modules
     
 }
-
+ 

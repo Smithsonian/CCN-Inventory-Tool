@@ -2,7 +2,7 @@
 
 # This is the user-interface definition of a Shiny web application.
 
-rmdfiles <- c("testdoc.Rmd")
+rmdfiles <- c("country_insights.Rmd")
 sapply(rmdfiles, knit, quiet = T) #transform .Rmd to .md to render below 
 
 # Application UI logic
@@ -67,10 +67,11 @@ fluidPage(
                             fluidRow( # or use splitLayout()?...doesn't seem to facilitate text wrapping
                               column(leafletOutput("map"), width = 5),
                               column(
-                                # p("This section will contain information about the available data for the selected country."),
+                                 p("This section will contain information about the available data for the selected country."),
                                      
                                      tabsetPanel(type = "tabs",
-                                                 tabPanel("Data Status", p("Info about the state of the accessible data for this country (ex. quantity, quality, and coverage).")),
+                                                 #tabPanel("Data Status", p("Info about the state of the accessible data for this country (ex. quantity, quality, and coverage).")),
+                                                 tabPanel("Data Status", plotlyOutput("datastatus")),
                                                  tabPanel("Emissions Factors", plotlyOutput("efplot")),
                                                  tabPanel("Activity Data", plotOutput("activityplot"))
                                      ),
@@ -79,9 +80,9 @@ fluidPage(
                             
                             fluidRow(
                               tabsetPanel(type = "tabs",
-                                          tabPanel("Insight", includeMarkdown("testdoc.md")), #this renders .md
-                                          #tabPanel("Insight", textOutput("datainsight"), DTOutput("tec")),
-                                          tabPanel("Table", DTOutput("maintable"))
+                                          tabPanel("Detailed Insight", ) ## UPDATE THIS TO READ IN PDF FOR input$chosen_country
+                                          #tabPanel("Detailed Insight", includeMarkdown("country_insights.md")), #this renders .md
+                                          tabPanel("Stocks Table", DTOutput("maintable"))
                                           # tabPanel("TEC", p("TEC plot"))
                               ),
                               width = 10)
