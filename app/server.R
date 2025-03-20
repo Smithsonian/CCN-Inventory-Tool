@@ -1,7 +1,7 @@
 #
 # This is the server logic of a Shiny web application. 
 
-# Define server logic required to draw a histogram
+# Define server logic 
 function(input, output, session) {
 
   # Initialize app state when nothing is selected yet
@@ -9,21 +9,20 @@ function(input, output, session) {
   #   geography = chosen_country
   # })
   
+  # compile these in to one reactiveValues object?
+  
   r <- reactive(
     # which(map_input$country == input$chosen_country)
     world_ne %>% filter(country == input$chosen_country)
   )
   
-  country_subset <- reactive(
-    countrydata %>% filter(country == input$chosen_country)
-  )
-  # 
-  # tier1subset <- reactive(
-  #   tier1data %>% filter(country == input$chosen_country)
-  # )
-    # bindCache(input$chosen_country) %>%
-    # bindEvent(input$go)
-  
+  geography_subset <- reactive({
+    countrydata %>% filter(territory == input$chosen_country)
+  })
+
+  dat <- reactive({
+    map_input %>% filter(country == input$chosen_country)
+  })
 
   ## Map -------------------
   
@@ -44,54 +43,103 @@ function(input, output, session) {
     leaflet() %>% 
       # basemap options
       addTiles(group = "OSM (default)") %>%
-      addProviderTiles(providers$CartoDB, group = "CartoDB") %>%
+      addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
       
       # add polygon layer
       addPolygons(data = r(), weight = 2, 
                   # fill = FALSE, 
                   group = "Border") %>% 
-      # add data points
-      addCircleMarkers(data = map_stocks %>% drop_na(latitude) %>% filter(country == input$chosen_country), 
+      
+      # add data points 
+      # for cores
+      addCircleMarkers(data = dat(),
+                       # data = map_input %>% 
+                       #                  drop_na(latitude) %>% 
+                       #                  filter(country == input$chosen_country) %>% 
+                       #                  filter(carbon_pool == "soil"), 
                        lng = ~longitude, lat = ~latitude, radius = 2,
-                       group = "Cores") %>%
+                       label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
+                       group = "Samples") %>% 
       
       addLayersControl(
         baseGroups = c("OSM (default)", "CartoDB"),
-        overlayGroups = c("Cores", "Border"),
+        overlayGroups = c("Samples", "Border"),
         options = layersControlOptions(collapsed = FALSE)
       )
     
-  }) %>% 
-    bindEvent(input$go)
+  }) %>% bindEvent(input$go)
   
+  ## An observe statement to update the map
+  # observe({
+  #   # here we use leafletProxy()
+  #   leafletProxy(mapId = "map") %>% 
+  #     # reset map layers
+  #     clearMarkers() %>% clearShapes() 
+  # })
   
   ## Plots ----------------
   
+  ## Data Status
+  ## quantity, quality, representation 
+  output$datastatus <- renderPlot({
+    
+    #case where there are cores available in CCA 
+    #if(input$chosen_country %in% datastatus_counts$country){
+    
+    # quantity_table <- datastatus_counts %>% 
+    #   dplyr::filter(country == input$chosen_country) %>% 
+    #   mutate(data_tier_available = ifelse(!is.na(n_cores), "Tier II", "Tier I"))
+    
+    dat() %>% 
+      dplyr::count(carbon_pool, habitat, country) %>% 
+      
+      ggplot2::ggplot() + 
+      geom_col(aes(habitat, n, fill = carbon_pool)) +
+      # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+      coord_flip() +
+      ylab("Number of Cores") + theme_bw(base_size = 20) +
+      theme(legend.position = "bottom")
+    
+    # } else {
+    #   table_other <- tibble(country = input$chosen_country,
+    #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
+    #                         data_tier_available = "Tier I")
+    # }
+  }) %>% bindEvent(input$go)
   
   ## Emission Factor plot
   output$efplot <- renderPlotly({
     ggplotly(
-      ggplot(country_subset(), aes(stock_MgHa_mean, habitat, col = tier)) +
+      
+      geography_subset() %>% 
+        select(habitat, contains("stock"), contains("Tier")) %>% 
+        select(-contains("Total")) %>% 
+        pivot_longer(cols = -habitat, names_to = "tier", values_to = "stock") %>% 
+        separate(tier, into = c("carbon_pool", "tier", "stat"), sep = "_") %>% 
+        pivot_wider(id_cols = c("habitat", "carbon_pool", "tier"), names_from = stat, values_from = stock) %>% 
+        
+        ggplot2::ggplot(aes(mean, habitat, col = tier)) +
         # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
-        geom_errorbar(aes(xmin = stock_MgHa_lowerCI, xmax  = stock_MgHa_upperCI), width = 0.1) +
+        geom_errorbar(aes(xmin = lowerCI, xmax  = upperCI), width = 0.1) +
         geom_point(size = 2, shape = 21, fill="white") +
         theme_bw() +
         facet_wrap(~`carbon_pool`, 
                    # scales = "free", 
-                   dir = "v") +
-        theme(legend.position = "bottom") 
+                   dir = "v")
+        # theme(legend.position = "bottom")
+        
     )
   }) %>% bindEvent(input$go)
   
   ## Activity Data
   output$activityplot <- renderPlot({
     
-    landuse %>% 
+    # countrydata %>% 
       #dplyr::filter(complete.cases(area_ha)) %>% 
-      dplyr::filter(country == input$chosen_country) %>% 
-      ggplot2::ggplot() + 
+      # dplyr::filter(country == input$chosen_country) %>% 
+      ggplot2::ggplot(geography_subset()) + 
       geom_col(aes(habitat, area_ha, fill = habitat)) +
-      geom_errorbar(aes(x= habitat, ymin = hectare_LowerCI, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+      geom_errorbar(aes(x= habitat, ymin = area_ha_lowerCI, ymax = area_ha_upperCI, y= area_ha), width = 0.1) +
       coord_flip() +
       ylab("Area (hectares)") + theme_bw(base_size = 20) +
       theme(legend.position = "bottom")
@@ -101,121 +149,13 @@ function(input, output, session) {
 
   
   ## Tables --------------
-  #maintable 
-  output$maintable <- renderDT({
-      
-    country_subset() %>% 
-      select(-c(stock_MgHa_lowerCI, stock_MgHa_upperCI)) %>% 
-      DT::datatable(caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_country),
-                    options = list(searching = FALSE,
-                                   paging = FALSE,
-                                   info = FALSE,
-                                   # scrollY = 300,
-                                   # scrollX = 300,
-                                   scrollCollapse = TRUE),
-                    rownames = FALSE)
-  }) %>% 
-    bindEvent(input$go)
-  
-  
-  
-  #trying out a figure for the 'Data Status' tab, quantity, quality, coverage 
-  output$datastatus <- renderPlot({
-    
-    #case where there are cores available in CCA 
-    #if(input$chosen_country %in% datastatus_counts$country){
-      
-      # quantity_table <- datastatus_counts %>% 
-      #   dplyr::filter(country == input$chosen_country) %>% 
-      #   mutate(data_tier_available = ifelse(!is.na(n_cores), "Tier II", "Tier I"))
-      
-      datastatus_counts %>% 
-        dplyr::filter(country == input$chosen_country) %>% 
-        ggplot2::ggplot() + 
-        geom_col(aes(habitat, n_cores, fill = habitat)) +
-       # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
-        coord_flip() +
-        ylab("Number of Cores") + theme_bw(base_size = 20) +
-        theme(legend.position = "bottom")
-      
-        
-    # } else {
-    #   table_other <- tibble(country = input$chosen_country,
-    #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
-    #                         data_tier_available = "Tier I")
-    # }
-    
-  }) %>% 
-      bindEvent(input$go)
-  
-  
-    
-    
     
   output$tec <- renderDT({
     
-    # Case: there is in-country data
-    if(input$chosen_country %in% tier2data$country){
-      tec_table <- tier2data %>%
-        tidyr::drop_na(country, habitat, stock_MgHa_mean) %>%
-        dplyr::filter(country == input$chosen_country) %>%
-        
-        # add tier I data
-        dplyr::bind_rows(tier1data %>% dplyr::filter(country == input$chosen_country)) %>% 
-        
-        dplyr::group_by(country, habitat, carbon_pool, tier) %>%
-        dplyr::summarize(`sample size` = n(),
-                         stock_MgHa_mean = mean(stock_MgHa, na.rm = T),
-                         stock_MgHa_se = sd(stock_MgHa, na.rm = T)) %>%
-        dplyr::ungroup() %>%
-        
-        # join country land use/habitat area data
-        dplyr::left_join(landuse %>% dplyr::filter(country == input$chosen_country)) %>% 
-        
-        # upscale estimates using habitat area
-        dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
-                      `stock avg (TgC)` = round(stock_MgHa_mean * area_ha / 10^6, 2),
-                      # stock_TgC_se = round(stock_MgHa_se * area_ha / 10^6, 2),
-                      # calculate co2 equivalent
-                      `CO2eq (TgC)` = round(stock_MgHa_mean * area_ha * 3.67 / 10^6, 2),
-                      `CO2eq SE (TgC)` = round(stock_MgHa_se * area_ha * 3.67 / 10^6, 2)) %>%
-        # select(-c(iso3c, stock_MgHa_mean, stock_MgHa_se, area_ha)) %>% 
-        
-        # summarize TEC
-        dplyr::group_by(country, tier) %>% 
-        dplyr::summarise(`TEC (TgC)` = sum(`stock avg (TgC)`, na.rm = T),
-                         `TEC CO2eq (TgC)` = sum(`CO2eq (TgC)`, na.rm = T))
-      
-      # Case: no in-country data
-    } else {
-     tec_table <- tier1data %>% dplyr::filter(country == input$chosen_country) %>% 
-        
-        dplyr::group_by(country, habitat, carbon_pool, tier) %>%
-        dplyr::summarize(`sample size` = n(),
-                         stock_MgHa_mean = mean(stock_MgHa, na.rm = T),
-                         stock_MgHa_se = sd(stock_MgHa, na.rm = T)) %>%
-        dplyr::ungroup() %>%
-        
-        # join country land use/habitat area data
-        dplyr::left_join(landuse %>% dplyr::filter(country == input$chosen_country)) %>% 
-        
-        # upscale estimates using habitat area
-        dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
-                      `stock avg (TgC)` = round(stock_MgHa_mean * area_ha / 10^6, 2),
-                      # stock_TgC_se = round(stock_MgHa_se * area_ha / 10^6, 2),
-                      # calculate co2 equivalent
-                      `CO2eq (TgC)` = round(stock_MgHa_mean * area_ha * 3.67 / 10^6, 2),
-                      `CO2eq SE (TgC)` = round(stock_MgHa_se * area_ha * 3.67 / 10^6, 2)) %>%
-        # select(-c(iso3c, stock_MgHa_mean, stock_MgHa_se, area_ha)) %>% 
-        
-        # summarize TEC
-        dplyr::group_by(country, tier) %>% 
-        dplyr::summarise(`TEC (TgC)` = sum(`stock avg (TgC)`, na.rm = T),
-                         `TEC CO2eq (TgC)` = sum(`CO2eq (TgC)`, na.rm = T))
-    }
+    # need to format the names of the table columns to be more user friendly
     
-    DT::datatable(tec_table, 
-                  caption = paste("Activity data for tidal wetland ecosystems in ", input$chosen_country),
+    DT::datatable(geography_subset(), 
+                  caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_country),
                   options = list(searching = FALSE,
                                  paging = FALSE,
                                  info = FALSE,
@@ -225,55 +165,39 @@ function(input, output, session) {
                   rownames = FALSE)
   }) %>% bindEvent(input$go)
     
-  # ggplot(tec, aes(tier, `TEC CO2eq (TgC)`)) + geom_point() + coord_flip() + theme_bw()
-
+  ## Report Download ---------------
+  
+  output$downloadReport <- downloadHandler(
+    # name of exported file
+    filename = function(){
+      paste0(input$chosen_country, "_Inventory_Report_", Sys.Date(), ".pdf")
+    },
+    # copy PDF file from the folder containing the pre-generated reports
+    content = function(file) {
+      file.copy(paste0("www/test_download/", input$chosen_country, "_report.pdf"), file) 
+      
+      # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
+    }
+  )
+  
   ################################################
   
-  ## Conditional Insight - replaced by country_insight.md
+  ## Conditional Insight
   
   # output$datainsight <- renderText({
   #   
   #   # Case: no in country data 
   #   if(!input$chosen_country %in% unique(tier2data$country)){
-  #     "No data for this country. Go sample."
+  #     "No data for this country."
   #   } else{
   #     paste("Congratulations, you have data for this country! There are", 
-  #           length(unique(country_subset()$habitat)), "habitats represented.",
+  #           length(unique(geography_subset()$habitat)), "habitats represented.",
   #           sep = " ",
   #           "This tab includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass ecosystems.")
   #   }
   #   
   # }) %>% bindEvent(input$go)
   # 
-  # 
-  ## Value Boxes
-  ## Won't work without Shiny dashboard
-  # output$num_cores <- renderValueBox({
-  #   valueBox(
-  #     nrow(tier2subset() %>% filter(carbon_pool == "soil")), 
-  #     "Number of cores", icon = icon("vials"),
-  #     color = "aqua"
-  #   )
-  # })
-  # 
-  # output$num_habitats <- renderValueBox({
-  #   valueBox(
-  #     nrow(tier2subset() %>%
-  #            dplyr::filter(!is.na(habitat)) %>%
-  #            dplyr::count(habitat)), 
-  #     "Number of habitats", icon = icon("tree"),
-  #     color = "green"
-  #   )
-  # })
-  # 
-  # output$num_veg <- renderValueBox({
-  #   valueBox(
-  #     nrow(tier2subset() %>% filter(carbon_pool == "vegetation")),
-  #     "Number of vegetation surveys", icon = icon("ruler-vertical"),
-  #     color = "light-blue"
-  #   )
-  # })
-  
   
   # Call modules
     

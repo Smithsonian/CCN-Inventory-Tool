@@ -9,7 +9,7 @@ It contains direct access to existing and future blue carbon data from the Coast
 
 ### How to use
 
-Navigate to the dashboard home page and select your country of interest. Then, press the calculate button and explore multiple tables, visualisations, and country-level insights. 
+Navigate to the dashboard home page and select your country of interest. Then, press the calculate button and explore multiple tables, visualizations, and country-level insights. 
 
 ### How to cite
 
@@ -25,4 +25,6 @@ This tool does not include designations of contested Exclusive Economic Zones (E
 
 ### Acknowledgements
 
-We would like to acknowledge
+This interface is made possible by:
+- NOAA BCIP
+- HASI Foundation

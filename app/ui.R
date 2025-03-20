@@ -2,8 +2,8 @@
 
 # This is the user-interface definition of a Shiny web application.
 
-rmdfiles <- c("country_insights.Rmd")
-sapply(rmdfiles, knit, quiet = T) #transform .Rmd to .md to render below 
+# rmdfiles <- c("country_insights.Rmd")
+# sapply(rmdfiles, knit, quiet = T) #transform .Rmd to .md to render below 
 
 # Application UI logic
 fluidPage(
@@ -28,12 +28,12 @@ fluidPage(
                           # select a country
                           selectInput(inputId = "chosen_country",
                                       label = "Select a geography",
-                                      choices = tier1data %>%
-                                        drop_na(country) %>%
-                                        arrange(country) %>%
-                                        distinct(country) %>%
-                                        pull(country),
-                                      selected = "United States"
+                                      choices = unique(main_table$territory) %>% sort(),
+                                        # drop_na(country) %>%
+                                        # arrange(country) %>%
+                                        # distinct(country) %>%
+                                        # pull(country),
+                                      selected = "Belize"
                           ),
                           
                           br(),
@@ -67,22 +67,30 @@ fluidPage(
                             fluidRow( # or use splitLayout()?...doesn't seem to facilitate text wrapping
                               column(leafletOutput("map"), width = 5),
                               column(
-                                 p("This section will contain information about the available data for the selected country."),
+                                 # p("This section will contain information about the available data for the selected country."),
                                      
                                      tabsetPanel(type = "tabs",
-                                                 #tabPanel("Data Status", p("Info about the state of the accessible data for this country (ex. quantity, quality, and coverage).")),
-                                                 tabPanel("Data Status", plotlyOutput("datastatus")),
+                                                 tabPanel("Data Status", plotOutput("datastatus")),
                                                  tabPanel("Emissions Factors", plotlyOutput("efplot")),
-                                                 tabPanel("Activity Data", plotOutput("activityplot"))
+                                                 tabPanel("Activity Data", plotOutput("activityplot")),
                                      ),
                                      width = 5)
                             ),
                             
                             fluidRow(
                               tabsetPanel(type = "tabs",
-                                          tabPanel("Detailed Insight", ) ## UPDATE THIS TO READ IN PDF FOR input$chosen_country
+                                          tabPanel("Detailed Insight", 
+                                                   tags$br(), 
+                                                   
+                                                   tags$b("Insight about data available for selected country."),
+                                                   
+                                                   tags$br(), tags$br(), 
+                                                   
+                                                   downloadButton("downloadReport", 
+                                                                  label = "Download Report", 
+                                                                  class = "btn-primary")), 
                                           #tabPanel("Detailed Insight", includeMarkdown("country_insights.md")), #this renders .md
-                                          tabPanel("Stocks Table", DTOutput("maintable"))
+                                          tabPanel("Stocks Table", DTOutput("tec"))
                                           # tabPanel("TEC", p("TEC plot"))
                               ),
                               width = 10)
