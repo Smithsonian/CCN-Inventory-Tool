@@ -97,7 +97,7 @@ function(input, output, session) {
       geom_col(aes(habitat, n, fill = carbon_pool)) +
       # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
       coord_flip() +
-      ylab("Number of Cores") + theme_bw(base_size = 20) +
+      ylab("Number of Samples") + theme_bw(base_size = 20) +
       theme(legend.position = "bottom")
     
     # } else {
@@ -112,6 +112,7 @@ function(input, output, session) {
     ggplotly(
       
       geography_subset() %>% 
+        select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>%
         select(habitat, contains("stock"), contains("Tier")) %>% 
         select(-contains("Total")) %>% 
         pivot_longer(cols = -habitat, names_to = "tier", values_to = "stock") %>% 

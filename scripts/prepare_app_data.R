@@ -131,8 +131,12 @@ main_table <- all_stocks_raw %>%
   ## Mangrove IPCC Tier I Biomass EF: Total (511) - Soil (386) = Veg (125) Mg/Ha
   mutate(veg_TierI_Mean = case_when(habitat == "mangrove" ~ 125, T ~ NA)) %>% 
   select_if(~!all(is.na(.))) %>% 
-  select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>% 
+  # select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>% 
   select(continent, region, country, territory, everything())
+
+## Create table with fake data
+# fake_main <- main_table %>% 
+#   drop_na(area_ha)
 
 # extract total stock values for total country and each habitat
 # Questions: 
@@ -144,6 +148,8 @@ territory_tec <- all_stocks_raw %>%
   full_join(geokey) %>% 
   select(-habitat) %>% 
   select(continent, region, country, everything())
+# idk if we'll use this table, but including it anyways
+
 
 ## ... Export App Data ####
 
