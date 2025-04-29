@@ -67,7 +67,7 @@ function(input, output, session) {
         options = layersControlOptions(collapsed = FALSE)
       )
     
-  }) %>% bindEvent(input$go)
+  }) #%>% bindEvent(input$go)
   
   ## An observe statement to update the map
   # observe({
@@ -105,7 +105,7 @@ function(input, output, session) {
     #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
     #                         data_tier_available = "Tier I")
     # }
-  }) %>% bindEvent(input$go)
+  }) #%>% bindEvent(input$go)
   
   ## Emission Factor plot
   output$efplot <- renderPlotly({
@@ -130,7 +130,7 @@ function(input, output, session) {
         # theme(legend.position = "bottom")
         
     )
-  }) %>% bindEvent(input$go)
+  }) #%>% bindEvent(input$go)
   
   ## Activity Data
   output$activityplot <- renderPlot({
@@ -146,7 +146,7 @@ function(input, output, session) {
       theme(legend.position = "bottom")
     # make it an option to change plotting units (ex. km^2)
     
-  }) %>% bindEvent(input$go)
+  }) #%>% bindEvent(input$go)
 
   
   ## Tables --------------
@@ -164,7 +164,7 @@ function(input, output, session) {
                                  # scrollX = 300,
                                  scrollCollapse = TRUE),
                   rownames = FALSE)
-  }) %>% bindEvent(input$go)
+  }) #%>% bindEvent(input$go)
     
   ## Report Download ---------------
   
@@ -175,7 +175,7 @@ function(input, output, session) {
     },
     # copy PDF file from the folder containing the pre-generated reports
     content = function(file) {
-      file.copy(paste0("www/test_download/", input$chosen_country, "_report.pdf"), file) 
+      file.copy(paste0("www/reports", input$chosen_country, "_Report.pdf"), file) 
       
       # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
     }

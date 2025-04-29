@@ -3,7 +3,7 @@ title: "Detailed Insights: `r chosen_geog`"
 output:
   pdf_document:
      toc: true
-bibliography: "`r here::here('app/data/reports', bib)`"
+bibliography: "`r here::here('app/www/reports', bib)`"
 engine: knitr
 ---
 
@@ -12,48 +12,42 @@ nocite: '@*'
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
-library(dplyr)
+library(tidyverse)
 library(readr)
 library(knitr)
 library(kableExtra)
 library(leaflet)
+library(mapview)
+library(webshot)
 
-### This script writes the country insights pdf for the case of countries with AVAILABLE Tier II DATA 
+### This script writes the country insights pdf for the case of countries with NO AVAILABLE Tier II DATA 
 
-#function to select only observations with chosen geography
+#function to select only observations with chosen country 
 selectGeography <- function(df){
   df %>% filter(territory == chosen_geog)
 }
 
+#country lookup table 
+country_lookup <- read_csv("country_lookup.csv")
 
+country <- country_lookup %>% 
+  filter(territory == chosen_geog) %>% 
+  select(country)
+chosen_country <- as.character(country)
+
+#function if needed to select only chosen country (CCA cores)
 selectCountry <- function(df){
   df %>% filter(country == chosen_country)
 }
 
-#pull in curated app data, filtered to territory
-##REDO -- new output tables through app_data 
+
+#pull in curated app data, filtered to chosen territory 
 app_data <- readRDS("app_data.rds") 
 allstocks <- app_data$main_table %>% selectGeography()
 totalstocks <- app_data$territory_tec
 map_input <- app_data$map_input #no territory listed 
 
-
-map_territories <- read_csv("map_territories.csv")
-# stocks <- read_csv("all_stocks_table.csv") 
-# all_stocks <- selectCountry(stocks)
-# app_data <- readRDS("app_data.rds") 
-# area <- app_data$landuse #%>% selectCountry()
-# tier1data <- app_data$tier1data 
-# tier2data <- app_data$tier2data
-# tier3data <- app_data$tier3data
-# emissionsfactors <- app_data$emissionsfactors %>% selectCountry()
-# totalstocks <- app_data$totalstocks %>% selectCountry()
-# #map_input <- app_data$map_input %>% filter(country == chosen_country)
-# map_cores <- app_data$map_cores %>% selectCountry()
-#citations <- app_data$citations
-
 rm(app_data) #keeps the rds out of the environment 
-
 ```
 
 ```{r habitat areas, echo=FALSE}
@@ -127,9 +121,28 @@ Resources referenced to calculate estimates for **`r chosen_geog`** are listed b
 If you have any questions or data you would like to add to the Coastal Carbon Network, please reach out to us at [CoastalCarbon\@si.edu](mailto:CoastalCarbon@si.edu){.email}.
 
 
-```{r, echo=FALSE, out.width="85%", fig.cap= paste(chosen_geog), fig.align='center'}
+```{r, echo=FALSE}
 
-knitr::include_graphics(paste0("reports/",chosen_geog,".png"))
+select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
+    dplyr::select(territory = admin) %>% 
+    dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
+    filter(territory == chosen_geog)
+  
+  geographies_list <- allstocks %>% select(country, territory) %>% distinct()
+  
+  chosen_country <- geographies_list %>% filter(territory == chosen_geog) %>% select(country)
+  chosen_country <- as.character(chosen_country)
+  
+  chosen_map_input <- map_input %>% filter(country == chosen_country)
+  
+  map <- leaflet() %>% 
+    # basemap options
+    addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers 
+    
+    #add polygon layer for selected territory border 
+    #addPolygons(data = select_map_territory, weight = 2) %>% 
+    addCircleMarkers(data = chosen_map_input, lat = ~latitude, lng = ~longitude)
+#knitr::include_graphics(paste0("reports/",chosen_geog,".png"))
 
 ```
 
@@ -500,6 +513,14 @@ allstocks %>%
   ylab("Area (hectares)") + theme_bw(base_size = 20) +
   theme(legend.position = "bottom")
 ```
+
+
+## Methods 
+```{r, echo=FALSE, results='asis'}
+
+cat("Add methods section here.")
+```
+
 
 
 ## References

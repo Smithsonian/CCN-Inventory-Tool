@@ -33,17 +33,17 @@ fluidPage(
                                         # arrange(country) %>%
                                         # distinct(country) %>%
                                         # pull(country),
-                                      selected = "Belize"
+                                      #selected = "Belize"
                           ),
                           
                           br(),
                           
-                          actionButton(
-                            inputId = "go",
-                            label = "Calculate",
-                            class = "btn-info"),
-                          
-                          hr(),
+                          # actionButton(
+                          #   inputId = "go",
+                          #   label = "Calculate",
+                          #   class = "btn-info"),
+                          # 
+                          #hr(),
                           
                           helpText("Please direct any questions or suggestions to CoastalCarbon@si.edu"),
                           

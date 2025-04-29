@@ -87,8 +87,8 @@ writeInsightsDat <- function(chosen_geog, bib){
   bib <-paste0(chosen_geog, ".bib")
   # generate country pdf
   rmarkdown::render(input = "app/data/insights_tierII.Rmd",
-                    output_file = paste0(chosen_geog, "_Detailed_Insights.pdf"),
-                    output_dir = "app/data/reports/",
+                    output_file = paste0(chosen_geog, "_Report.html"),
+                    output_dir = "app/www/reports/",
                     params = list(
                       country = chosen_geog
                     ))
@@ -100,8 +100,8 @@ writeInsightsNOdat <- function(chosen_geog, bib){
   bib <-paste0(chosen_geog, ".bib")
   # generate country pdf
   rmarkdown::render(input = "app/data/insights_NO_tierII.Rmd",
-                    output_file = paste0(chosen_geog,"_Detailed_Insights.pdf"),
-                    output_dir = "app/data/reports/",
+                    output_file = paste0(chosen_geog,"_Report.html"),
+                    output_dir = "app/www/reports/",
                     params = list(
                       country = chosen_geog
                     ))
@@ -169,7 +169,6 @@ territory_citations <- citations %>%
   select(country, territory, everything())
 
 
-
 ##RUN DEMO LOOPS ####
 
 # 1. write bibs
@@ -177,6 +176,11 @@ territory_citations <- citations %>%
 for (i in seq_along(tierIITEST)) {
 
   writeBibs(tierIITEST[i])
+}
+
+for (i in seq_along(tierITEST)) {
+  
+  writeBibs(tierITEST[i])
 }
 
 # 2. render maps 
@@ -192,7 +196,7 @@ for (i in seq_along(tierIITEST)) {
 #   {renderMap2(tierIITEST[i])}
 # }
 
-# 3. render pdfs 
+# 3. render reports
 
 for (i in seq_along(tierITEST)) {
   
@@ -203,4 +207,10 @@ for (i in seq_along(tierIITEST)) {
   
   {writeInsightsDat(tierIITEST[i])}
 }
+
+
+
+writeInsightsNOdat("Peru")
+
+
 
