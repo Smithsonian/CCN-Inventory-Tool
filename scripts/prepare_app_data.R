@@ -13,7 +13,7 @@ library(tidyr)
 core_stocks_raw <- read_csv("data/soilstocks_1m.csv") # need to update these tables when 1.5.0 is published?
 biomass_stocks_raw <- read_csv("data/app_biomass_input.csv")
 
-all_stocks_raw <- read_csv("app/data/all_stocks_table.csv") %>% 
+all_stocks_raw <- read_csv("data/all_stocks_table.csv") %>% 
   # correct some country and territory names
   mutate(country = recode(country,
                           "Russian Federation" = "Russia",
@@ -21,6 +21,9 @@ all_stocks_raw <- read_csv("app/data/all_stocks_table.csv") %>%
          territory = recode(territory,
                           "Russian Federation" = "Russia",
                           "Micronesia" = "Federated States of Micronesia"))
+
+#read in shp files for data analytics based map
+world_ccn <- st_read("data/CCN_Countries_and_EEZ_map.shp")
 
 # pull cores and depthseries tables from dev branch
 # guess_max <- nrow(read_csv("https://raw.githubusercontent.com/Smithsonian/CCN-Data-Library/develop/data/CCN_synthesis/CCN_depthseries.csv"))
@@ -151,12 +154,14 @@ territory_tec <- all_stocks_raw %>%
 # idk if we'll use this table, but including it anyways
 
 
+
 ## ... Export App Data ####
 
 app_data <- list(
   main_table = main_table,
   territory_tec = territory_tec,
-  map_input = map_input
+  map_input = map_input,
+  ccn_map = world_ccn
   )
 # tier2data = tier2stocks,
 # tier1data = tier1stocks,

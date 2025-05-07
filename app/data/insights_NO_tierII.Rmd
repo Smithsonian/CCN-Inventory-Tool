@@ -1,9 +1,10 @@
 ---
 title: "Detailed Insights: `r chosen_geog`"
 output:
-  pdf_document:
+  html_document:
      toc: true
-bibliography: "`r here::here('app/www/reports', bib)`"
+     toc_float: true
+bibliography: "`r here::here('app/data/bibs', bib)`"
 engine: knitr
 ---
 
@@ -53,19 +54,22 @@ rm(app_data) #keeps the rds out of the environment
 ```{r habitat areas, echo=FALSE}
 #Area totals for individual habitats 
 #mangrove values 
-area_ha_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha) 
-area_low_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha_lowerCI)
-area_high_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha_upperCI)
+mangrove_area <- allstocks %>% filter(habitat == "mangrove")
+area_ha_mangrove <- mangrove_area$area_ha
+area_low_mangrove <- mangrove_area$area_ha_lowerCI
+area_high_mangrove <- mangrove_area$area_ha_upperCI
 
 #marsh values
-area_ha_marsh <- allstocks %>% filter(habitat == "marsh") %>% select(area_ha)
-area_low_marsh <- allstocks %>%  filter(habitat == "marsh") %>% select(area_ha_lowerCI)
-area_high_marsh <- allstocks %>% filter(habitat == "marsh") %>% select(area_ha_upperCI)
+marsh_area <- allstocks %>% filter(habitat == "marsh")
+area_ha_marsh <- marsh_area$area_ha
+area_low_marsh <- marsh_area$area_ha_lowerCI
+area_high_marsh <- marsh_area$area_ha_upperCI
 
 #seagrass values 
-area_ha_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha)
-area_low_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha_lowerCI)
-area_high_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha_upperCI)
+seagrass_area <- allstocks %>% filter(habitat == "seagrass")
+area_ha_seagrass <- seagrass_area$area_ha
+area_low_seagrass <- seagrass_area$area_ha_lowerCI
+area_high_seagrass <- seagrass_area$area_ha_upperCI
 ```
 
 ```{r total stocks, echo=FALSE}
@@ -150,7 +154,7 @@ totals <- allstocks %>%
   mutate(Country = country,
          Territory = territory,
          Habitat = habitat,
-         `Total Stock` = signif(Total_Stocks, 6),
+         `Total Stock` = signif(Total_Stocks, 3),
          `Upper CI` = signif(Total_Stocks_UpperCI, 6),
          `Lower CI` = signif(Total_Stocks_LowerCI, 6),
          `Standard Error` = signif(Total_Stocks_se, 5)) %>% 
@@ -168,15 +172,15 @@ kable(totals, caption = "Total Geography Level Stocks")
 
 ### Mangrove Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_mangrove, 6)`** metric tonnes soil Carbon in mangrove habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_mangrove, 3)`** metric tonnes soil Carbon in mangrove habitats.
 
 ### Tidal Marsh Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_marsh, 6)`** metric tonnes soil Carbon in tidal marsh habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_marsh, 3)`** metric tonnes soil Carbon in tidal marsh habitats.
 
 ### Seagrass Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_seagrass, 6)`** metric tonnes soil Carbon in seagrass habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_seagrass, 3)`** metric tonnes soil Carbon in seagrass habitats.
 
 ## Wetland Areas and Activities
 
@@ -184,19 +188,15 @@ This total estimate includes country-level mangrove carbon stock estimates, with
 
 ```{r mangrovearea, echo=FALSE, warning=FALSE, message=FALSE}
 
-area_ha_mangrove <- area_ha_mangrove %>% 
-  mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
-
-area_mangrove <- as.numeric(area_ha_mangrove) %>% signif(4)
-area_low_mangrove <- as.numeric(area_low_mangrove) %>% signif(4)
-area_high_mangrove <- as.numeric(area_high_mangrove) %>% signif(4)
+# area_ha_mangrove <- area_ha_mangrove %>% 
+#   mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
 
 #evaluating the case of available mangrove area 
-  if (area_mangrove > 0)
+  if (!is.na(area_ha_mangrove))
      {show_text = TRUE
   } else {show_text = FALSE}
 
-  if (area_mangrove <= 0)
+  if (is.na(area_ha_mangrove))
      {show_text2 = TRUE
   } else {show_text2 = FALSE}
 
@@ -204,7 +204,7 @@ area_high_mangrove <- as.numeric(area_high_mangrove) %>% signif(4)
 
 ```{r mangroveeval, eval=show_text, echo=FALSE, results='asis'}
 
-cat("We estimate mangrove area in",chosen_geog, "to be", area_low_mangrove, "to", area_high_mangrove,"hectares with a mean estimate of", area_mangrove,"hectares according to Global Mangrove Watch, Bunting et al 2018.")
+cat("We estimate mangrove area in",chosen_geog, "to be", area_low_mangrove, "to", area_high_mangrove,"hectares with a mean estimate of", area_ha_mangrove,"hectares according to Global Mangrove Watch, Bunting et al 2018.")
 ```
 
 ```{r mangroveeval2, eval=show_text2, echo=FALSE, results='asis'}
@@ -215,14 +215,14 @@ cat("We estimate mangrove area in", chosen_geog, "to be approximately 0 hectares
 
 ```{r marsharea, echo=FALSE, warning=FALSE, message=FALSE}
 
-area_ha_marsh <- area_ha_marsh %>% 
-  mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
+# area_ha_marsh <- area_ha_marsh %>% 
+#   mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
 
-  if (area_ha_marsh > 0)
+  if (!is.na(area_ha_marsh))
      {show_text = TRUE
   } else {show_text = FALSE}
 
-if (area_ha_marsh <= 0)
+if (is.na(area_ha_marsh))
      {show_text2 = TRUE
   } else {show_text2 = FALSE}
 
@@ -234,7 +234,7 @@ area_marsh <- as.numeric(area_ha_marsh) %>% signif(4)
 area_low_marsh <- as.numeric(area_low_marsh) %>% signif(4)
 area_high_marsh <- as.numeric(area_high_marsh) %>% signif(4)
 
-cat("We estimate tidal marsh area in",chosen_geog, "to be", area_low_marsh, "to", area_high_marsh,"hectares with a mean estimate of", area_marsh,"hectares according to Worthington et al 2024.") 
+cat("We estimate tidal marsh area in",chosen_geog, "to be", area_low_marsh, "to", area_high_marsh,"hectares with a mean estimate of", area_ha_marsh,"hectares according to Worthington et al 2024.") 
 ```
 
 ```{r marsheval2, eval=show_text2, echo=FALSE, results='asis'}
@@ -245,14 +245,14 @@ cat("We estimate tidal marsh area in", chosen_geog, "to be approximately 0 hecta
 
 ```{r seagrassarea, echo=FALSE, warning=FALSE, message=FALSE}
 
-area_ha_seagrass <- area_ha_seagrass %>% 
-  mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
+# area_ha_seagrass <- area_ha_seagrass %>% 
+#   mutate(area_ha = if_else(is.na(area_ha), 0, area_ha))
 
-  if (area_ha_seagrass > 0)
+  if (!is.na(area_ha_seagrass))
      {show_text = TRUE
   } else {show_text = FALSE}
 
-if (area_ha_seagrass <= 0)
+if (is.na(area_ha_seagrass))
      {show_text2 = TRUE
   } else {show_text2 = FALSE}
 
@@ -265,7 +265,7 @@ area_seagrass <- as.numeric(area_ha_seagrass) %>% signif(4)
 #seagrass_high_confidence <- 1 - 100
 #seagrass_low_confidence <- 1 - 100
 
-cat("We estimate seagrass area in",chosen_geog, "to have a mean estimate of", area_seagrass,"hectares according to McKenzie et al 2020, which aggregates data from multiple sources.")
+cat("We estimate seagrass area in",chosen_geog, "to have a mean estimate of", area_ha_seagrass,"hectares according to McKenzie et al 2020, which aggregates data from multiple sources.")
 
 
 # cat("McKenzie et al 2020 classifies seagrass area estimates as either high or medium to low confidence. seagrass_high_confidence % of the estimated seagrass area of",chosen_geog, "is considered high to medium confidence, while seagrass_low_confidence % of the estimated seagrass area is categorized as low confidence.")
@@ -330,19 +330,19 @@ Tier III Data Availability for **`r chosen_geog`**: There are currently no Tier 
 
 ## Visualizations 
 
-### 1. Data Metrics 
-```{r data metrics, echo=FALSE}
-map_input %>% filter(country == chosen_country) %>% 
-  dplyr::count(carbon_pool, habitat, country) %>% 
-  
-  ggplot2::ggplot() + 
-  geom_col(aes(habitat, n, fill = carbon_pool)) +
-  # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
-  coord_flip() +
-  ylab("Number of Samples") + theme_bw(base_size = 20) +
-  theme(legend.position = "bottom")
+<!-- ### 1. Data Metrics  -->
+<!-- ```{r data metrics, echo=FALSE} -->
+<!-- map_input %>% filter(country == chosen_country) %>%  -->
+<!--   dplyr::count(carbon_pool, habitat, country) %>%  -->
 
-```
+<!--   ggplot2::ggplot() +  -->
+<!--   geom_col(aes(habitat, n, fill = carbon_pool)) + -->
+<!--   # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) + -->
+<!--   coord_flip() + -->
+<!--   ylab("Number of Samples") + theme_bw(base_size = 20) + -->
+<!--   theme(legend.position = "bottom") -->
+
+<!-- ``` -->
 
 ### 2. Emissions Factors 
 ```{r emissions factors, echo=FALSE, warning=FALSE}
@@ -356,6 +356,7 @@ allstocks %>%
   
   ggplot2::ggplot(aes(mean, habitat, col = tier)) +
   # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
+  ylab("Habitat")+
   geom_errorbar(aes(xmin = lowerCI, xmax  = upperCI), width = 0.1) +
   geom_point(size = 2, shape = 21, fill="white") +
   theme_bw() +
@@ -374,6 +375,7 @@ allstocks %>%
   geom_errorbar(aes(x= habitat, ymin = area_ha_lowerCI, ymax = area_ha_upperCI, y= area_ha), width = 0.1) +
   coord_flip() +
   ylab("Area (hectares)") + theme_bw(base_size = 20) +
+  xlab("Habitat")+
   theme(legend.position = "bottom")
 ```
 

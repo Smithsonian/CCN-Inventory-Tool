@@ -13,9 +13,9 @@ tinytex::tlmgr_install("pdfcrop")
 ## .. 1. Run functions in environment 
 
 #write bibs 
-writeBibs <- function(chosen_geography){
+writeBibs <- function(chosen_geog){
   
-  citations_geog <- territory_citations %>% filter(territory == chosen_geography) %>% 
+  citations_geog <- territory_citations %>% filter(territory == chosen_geog) %>% 
     left_join(geographies_list) %>% 
     select(-territory) %>% 
     mutate(bibliography_id = str_replace_all(bibliography_id, "\\.", ""), #fixing misc formatting errors 
@@ -25,7 +25,7 @@ writeBibs <- function(chosen_geography){
   citations_geog <- as.BibEntry(citations_geog %>% 
                                   column_to_rownames("uniqueID"))
   
-  WriteBib(citations_geog, file = paste0(chosen_geography, ".bib"))
+  WriteBib(citations_geog, file = paste0(chosen_geog, ".bib"))
 }
 
 #render maps 
@@ -173,9 +173,9 @@ territory_citations <- citations %>%
 
 # 1. write bibs
 
-for (i in seq_along(tierIITEST)) {
+for (i in seq_along(tierIgeog_list)) {
 
-  writeBibs(tierIITEST[i])
+  writeBibs(tierIgeog_list[i])
 }
 
 for (i in seq_along(tierITEST)) {
@@ -197,10 +197,10 @@ for (i in seq_along(tierIITEST)) {
 # }
 
 # 3. render reports
-
-for (i in seq_along(tierITEST)) {
+ 
+for (i in seq_along(tierIgeog_list)) {
   
-  {writeInsightsNOdat(tierITEST[i])}
+  {writeInsightsNOdat(tierIgeog_list[i])}
 }
 
 for (i in seq_along(tierIITEST)) {

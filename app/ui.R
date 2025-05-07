@@ -26,24 +26,28 @@ fluidPage(
                           br(), # vertical spacing
 
                           # select a country
-                          selectInput(inputId = "chosen_country",
-                                      label = "Select a geography",
-                                      choices = unique(main_table$territory) %>% sort(),
-                                        # drop_na(country) %>%
-                                        # arrange(country) %>%
-                                        # distinct(country) %>%
-                                        # pull(country),
-                                      #selected = "Belize"
+                          # selectInput(inputId = "chosen_country",
+                          #             label = "Select a geography",
+                          #             choices = unique(main_table$territory) %>% sort()
+                          #             # drop_na(country) %>%
+                          #               # arrange(country) %>%
+                          #               # distinct(country) %>%
+                          #               # pull(country),
+                          #             #selected = "Belize"
+                          # ),
+                        
+                          
+                          selectizeInput(inputId = "chosen_geography",
+                                         label = "Select a geography",
+                                         choices = unique(main_table$territory) %>% sort(),
+                                         selected = NULL,
+                                         multiple = T,
+                                         options = list(placeholder = 'Select a geography')
+
                           ),
                           
-                          br(),
                           
-                          # actionButton(
-                          #   inputId = "go",
-                          #   label = "Calculate",
-                          #   class = "btn-info"),
-                          # 
-                          #hr(),
+                          br(),
                           
                           helpText("Please direct any questions or suggestions to CoastalCarbon@si.edu"),
                           
@@ -55,6 +59,12 @@ fluidPage(
                         ),
                         
                         mainPanel(
+                          actionButton(
+                            inputId = "reset",
+                            label = "Reset Map",
+                            class = "btn-info"
+                          ), 
+                          
                           # fluidRow(
                           #   div(id = "value_box_row",
                           #       valueBoxOutput("num_cores", width = 3),
@@ -65,7 +75,9 @@ fluidPage(
                           verticalLayout(
                             
                             fluidRow( # or use splitLayout()?...doesn't seem to facilitate text wrapping
+                            
                               column(leafletOutput("map"), width = 5),
+                              
                               column(
                                  # p("This section will contain information about the available data for the selected country."),
                                      
@@ -85,6 +97,8 @@ fluidPage(
                                                    tags$b("Insight about data available for selected country."),
                                                    
                                                    tags$br(), tags$br(), 
+                                                   
+                                                   #includeHTML("paste0(input$chosen_geography, `_Report.html`"),
                                                    
                                                    downloadButton("downloadReport", 
                                                                   label = "Download Report", 

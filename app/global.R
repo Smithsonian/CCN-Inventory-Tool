@@ -19,6 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(rnaturalearth)
 library(knitr)
+library(sf)
 
 # Configure ----
 
@@ -31,11 +32,13 @@ app_data <- readRDS("data/app_data.rds")
 # Extract components from RDS
 main_table <- app_data$main_table
 map_input <- app_data$map_input
+ccn_map <- app_data$ccn_map
 
 # configure main table
 countrydata <- main_table %>% 
   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
                 `CO2eq (TgC)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2)) 
+
 
 #   # upscale estimates using habitat area
 #   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
@@ -46,13 +49,24 @@ countrydata <- main_table %>%
 #                 `CO2eq SE (TgC)` = round(stock_MgHa_se * area_ha * 3.67 / 10^6, 2)) %>%
 
 # Map polygons
-world_ne <- rnaturalearth::ne_countries(returnclass = "sf",
-                                        # type = "sovereignty",
-                                        scale = "medium") %>% 
-  dplyr::select(country = sovereignt) %>% 
-  dplyr::mutate(country = recode(country, "United States of America" = "United States"))
 
-# Map popups?
+#Updating map polygons to include missing territories, downloading specified resolution (RC)
+# world <- rnaturalearth::ne_download(scale = 50) 
+#   
+# world_ne <- world %>% 
+#   dplyr::select(country = SOVEREIGNT,
+#                 territory = ADMIN) %>% 
+#   dplyr::mutate(country = recode(country, "United States of America" = "United States"))
+
+## Switching natural earth map for analytics repo shp files// keeping object names the same 
+world_ne <- ccn_map 
+
+## potential issue with tibble and geometry format conflicting 5/5 ^^^
+
+
+
+
+# Map popupsas_tibble()# Map popups?
 
 ## Application state ----
 

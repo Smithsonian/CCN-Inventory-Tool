@@ -11,17 +11,29 @@ function(input, output, session) {
   
   # compile these in to one reactiveValues object?
   
+  ## creating popup when app opens// can this connect to the selectize input dropdown?
+  observe({
+    showModal(
+      modalDialog(
+        title = "Welcome to the Coastal Carbon Inventory Tool!",
+        easyClose = T,
+        "Please select your country or territory in the dropdown menu to see country-level carbon stocks estimates, data visualizations and more"
+      )
+    )
+  }) 
+  
+  
   r <- reactive(
     # which(map_input$country == input$chosen_country)
-    world_ne %>% filter(country == input$chosen_country)
+    world_ne %>% filter(territory == input$chosen_geography)
   )
   
   geography_subset <- reactive({
-    countrydata %>% filter(territory == input$chosen_country)
+    countrydata %>% filter(territory == input$chosen_geography)
   })
 
   dat <- reactive({
-    map_input %>% filter(country == input$chosen_country)
+    map_input %>% filter(country == input$chosen_geography)
   })
 
   ## Map -------------------
@@ -32,50 +44,144 @@ function(input, output, session) {
   #     fitBounds(-135, -50, 145, 60) # initial conditions
   # })
   
-  output$map <- renderLeaflet({
-    # leaflet(r(), options = leafletOptions()) %>%
-    #   addTiles() %>% 
-    #   addPolygons(weight = 2)
-      # setView(lng = -88, lat = 17, zoom = 6) %>% 
-      # fitBounds(lng1 = map_input$longitude_max[r()], lng2 = map_input$longitude_min[r()],
-                # lat1 = map_input$latitude_max[r()], lat2 = map_input$latitude_min[r()])
+  
+
+#initial map state --> world map with all cca samples   
+  output$map <-
     
-    leaflet() %>% 
+    renderLeaflet({
+
+      leaflet() %>% 
+        # basemap options
+        addTiles(group = "OSM (default)") %>%
+        addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+        
+        # add data points (global cca samples)
+        addCircleMarkers(data = map_input,
+                         lng = ~longitude, lat = ~latitude, radius = 2,
+                         label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
+                         group = "Samples") %>% 
+        
+        addLayersControl(
+          baseGroups = c("OSM (default)", "CartoDB"),
+          overlayGroups = c("Samples"),
+          options = layersControlOptions(collapsed = FALSE)
+        )
+      
+    })
+  
+  
+  ## An observe statement to update the map, filtering to chosen territory 
+  observeEvent(input$chosen_geography, {
+    
+    bounds <- st_bbox(r()) %>% as.vector()
+
+    # using leafletProxy to call in original map 
+    leafletProxy(mapId = "map") %>%
+      # reset map layers
+      clearMarkers() %>% clearControls() %>% 
+      
       # basemap options
       addTiles(group = "OSM (default)") %>%
       addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
-      
+
       # add polygon layer
-      addPolygons(data = r(), weight = 2, 
-                  # fill = FALSE, 
-                  group = "Border") %>% 
-      
-      # add data points 
-      # for cores
+      addPolygons(data = r(), weight = 2,
+                  group = "Border") %>%
+
+      # add new markers
       addCircleMarkers(data = dat(),
-                       # data = map_input %>% 
-                       #                  drop_na(latitude) %>% 
-                       #                  filter(country == input$chosen_country) %>% 
-                       #                  filter(carbon_pool == "soil"), 
                        lng = ~longitude, lat = ~latitude, radius = 2,
                        label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
-                       group = "Samples") %>% 
+                       group = "Samples", 
+                       color = "purple") %>% 
       
+      # #auto zoom to selection
+      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>% 
+      
+      #add layer options 
       addLayersControl(
         baseGroups = c("OSM (default)", "CartoDB"),
         overlayGroups = c("Samples", "Border"),
         options = layersControlOptions(collapsed = FALSE)
       )
-    
-  }) #%>% bindEvent(input$go)
+      
+  })
   
-  ## An observe statement to update the map
-  # observe({
-  #   # here we use leafletProxy()
-  #   leafletProxy(mapId = "map") %>% 
-  #     # reset map layers
-  #     clearMarkers() %>% clearShapes() 
-  # })
+  
+#reset to original world map, linked to action button   
+ observeEvent(input$reset, {
+    
+    output$map <- renderLeaflet({
+      
+      leaflet() %>% 
+        # basemap options
+        addTiles(group = "OSM (default)") %>%
+        addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+        # add data points 
+        addCircleMarkers(data = map_input,
+                         lng = ~longitude, lat = ~latitude, radius = 2,
+                         label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
+                         group = "Samples") %>% 
+        
+        addLayersControl(
+          baseGroups = c("OSM (default)", "CartoDB"),
+          overlayGroups = c("Samples"),
+          options = layersControlOptions(collapsed = FALSE)
+        )
+      
+    })
+ })
+
+ #trying to connect reset button for map to dropdown menu, clearing the map and country selection 
+ # observeEvent(input$reset, {
+ #   
+ #   updateSelectizeInput(
+ #     session, "chosen_geography", 
+ #     choices = unique(main_table$territory) %>% sort(),
+ #     selected = NULL,
+ #     multiple = T
+ #   )
+ #   
+ # })
+ 
+  # output$map <- renderLeaflet({
+  #   # leaflet(r(), options = leafletOptions()) %>%
+  #   #   addTiles() %>% 
+  #   #   addPolygons(weight = 2)
+  #     # setView(lng = -88, lat = 17, zoom = 6) %>% 
+  #     # fitBounds(lng1 = map_input$longitude_max[r()], lng2 = map_input$longitude_min[r()],
+  #               # lat1 = map_input$latitude_max[r()], lat2 = map_input$latitude_min[r()])
+  #   
+  #   leaflet() %>% 
+  #     # basemap options
+  #     addTiles(group = "OSM (default)") %>%
+  #     addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+  #     
+  #     # add polygon layer
+  #     addPolygons(data = r(), weight = 2, 
+  #                 # fill = FALSE, 
+  #                 group = "Border") %>% 
+  #     
+  #     # add data points 
+  #     # for cores
+  #     addCircleMarkers(data = dat(),
+  #                      # data = map_input %>% 
+  #                      #                  drop_na(latitude) %>% 
+  #                      #                  filter(country == input$chosen_country) %>% 
+  #                      #                  filter(carbon_pool == "soil"), 
+  #                      lng = ~longitude, lat = ~latitude, radius = 2,
+  #                      label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
+  #                      group = "Samples") %>% 
+  #     
+  #     addLayersControl(
+  #       baseGroups = c("OSM (default)", "CartoDB"),
+  #       overlayGroups = c("Samples", "Border"),
+  #       options = layersControlOptions(collapsed = FALSE)
+  #     )
+  #   
+  #}) #%>% bindEvent(input$go)
+  
   
   ## Plots ----------------
   
@@ -156,7 +262,7 @@ function(input, output, session) {
     # need to format the names of the table columns to be more user friendly
     
     DT::datatable(geography_subset(), 
-                  caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_country),
+                  caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_geography),
                   options = list(searching = FALSE,
                                  paging = FALSE,
                                  info = FALSE,
@@ -171,11 +277,11 @@ function(input, output, session) {
   output$downloadReport <- downloadHandler(
     # name of exported file
     filename = function(){
-      paste0(input$chosen_country, "_Inventory_Report_", Sys.Date(), ".pdf")
+      paste0(input$chosen_geography, "_Inventory_Report_", Sys.Date(), ".pdf")
     },
     # copy PDF file from the folder containing the pre-generated reports
     content = function(file) {
-      file.copy(paste0("www/reports", input$chosen_country, "_Report.pdf"), file) 
+      file.copy(paste0("www/reports", input$chosen_geography, "_Report.pdf"), file) 
       
       # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
     }
