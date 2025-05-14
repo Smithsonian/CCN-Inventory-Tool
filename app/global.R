@@ -17,7 +17,7 @@ library(dplyr)
 library(readr)
 library(tidyr)
 library(ggplot2)
-library(rnaturalearth)
+# library(rnaturalearth)
 library(knitr)
 library(sf)
 
@@ -32,13 +32,12 @@ app_data <- readRDS("data/app_data.rds")
 # Extract components from RDS
 main_table <- app_data$main_table
 map_input <- app_data$map_input
-ccn_map <- app_data$ccn_map
+map_polys <- app_data$map_polys
 
 # configure main table
 countrydata <- main_table %>% 
   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
                 `CO2eq (TgC)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2)) 
-
 
 #   # upscale estimates using habitat area
 #   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
@@ -50,6 +49,12 @@ countrydata <- main_table %>%
 
 # Map polygons
 
+# set world bounds for global map view
+sp_points <- st_as_sf(map_input, coords = c('longitude',"latitude")) # make points spatial
+st_crs(sp_points) <- 4326 # Give the points a coordinate reference system (CRS)
+world_bounds <- st_bbox(sp_points) %>% as.vector()
+
+
 #Updating map polygons to include missing territories, downloading specified resolution (RC)
 # world <- rnaturalearth::ne_download(scale = 50) 
 #   
@@ -59,7 +64,7 @@ countrydata <- main_table %>%
 #   dplyr::mutate(country = recode(country, "United States of America" = "United States"))
 
 ## Switching natural earth map for analytics repo shp files// keeping object names the same 
-world_ne <- ccn_map 
+# world_ne <- world_polys 
 
 ## potential issue with tibble and geometry format conflicting 5/5 ^^^
 

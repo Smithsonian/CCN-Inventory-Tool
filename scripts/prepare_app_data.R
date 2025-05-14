@@ -7,6 +7,7 @@ library(plyr)
 library(dplyr)
 library(readr)
 library(tidyr)
+library(sf)
 
 ## Load Data ####
 
@@ -23,7 +24,10 @@ all_stocks_raw <- read_csv("data/all_stocks_table.csv") %>%
                           "Micronesia" = "Federated States of Micronesia"))
 
 #read in shp files for data analytics based map
-world_ccn <- st_read("data/CCN_Countries_and_EEZ_map.shp")
+map_polys <- st_read("data/territory_shapefiles/ccn_territory_map.shp")
+
+# read in lookup table for cores and territories
+core_terr_lookup <- read_csv("data/core_territory_lookup.csv")
 
 # pull cores and depthseries tables from dev branch
 # guess_max <- nrow(read_csv("https://raw.githubusercontent.com/Smithsonian/CCN-Data-Library/develop/data/CCN_synthesis/CCN_depthseries.csv"))
@@ -41,7 +45,7 @@ se <- function(x, na.rm=TRUE) {
   sd(x)/sqrt(length(x))
 }
 
-#create country list
+# create country list
 geokey <- all_stocks_raw %>% distinct(country, territory) %>% 
   drop_na(country) %>% 
     # assign continent and region
@@ -61,15 +65,17 @@ geokey <- all_stocks_raw %>% distinct(country, territory) %>%
 
 # Soils
 core_stocks <- core_stocks_raw %>%  
-  # dplyr::rename(soil_stock_1m_Mgha = stock_MgHa) %>% 
+  select(-country) %>% 
+  # dplyr::rename(current_country = country) %>% 
   drop_na(stock_MgHa) %>%
+  left_join(core_terr_lookup) %>% 
   # left_join(core_impacts) %>% 
   # left_join(site_impacts) %>% 
   mutate(
     # impact_class = coalesce(impact_class, site_impact_class),
          carbon_pool = "soil") %>%
   select(carbon_pool, study_id, site_id, core_id, latitude, longitude, max_depth, 
-         habitat, country, admin_division, stock_MgHa) 
+         habitat, country, territory, admin_division, stock_MgHa) 
 
 # Vegetation
 biomass_stocks <- biomass_stocks_raw %>% 
@@ -88,10 +94,11 @@ biomass_stocks <- biomass_stocks_raw %>%
          core_id = case_when(study_id == "Cifuentes_et_al_2024_Nicoya" ~ plot_id,
                              study_id == "Cifuentes_et_al_2023_Panama" ~ paste(site_id, plot_id, sep = "_"),
                              T ~ core_id), 
+         territory = country, # this is true for now, but we need to assign this geo 
          habitat = "mangrove",
          carbon_pool = "vegetation") %>% 
   select(study_id, site_id, plot_id, core_id, year, habitat, impact_class, latitude, longitude,
-         stock_MgHa, country, carbon_pool)
+         stock_MgHa, country, territory, carbon_pool)
 
 ## ... Map Input ####
 
@@ -103,14 +110,15 @@ map_input <- bind_rows(core_stocks, biomass_stocks) %>%
   #        tier = "country") %>% 
   #rename(ecosystem = habitat) %>% #standardizing column names across tables? 
   # select(-c(plot_id, year, impact_class)) %>% 
-  select(country, admin_division, everything())
+  drop_na(latitude, longitude) %>% 
+  select(country, territory, admin_division, everything())
 
 ## ... Main Table ####
 
 veg_smry <- biomass_stocks %>% 
-  dplyr::group_by(country, habitat) %>% 
+  dplyr::group_by(country, territory, habitat) %>% 
   dplyr::summarise(veg_TierII_mean = mean(stock_MgHa), 
-            veg_TierII_se = se(stock_MgHa))
+                   veg_TierII_se = se(stock_MgHa))
 
 main_table <- all_stocks_raw %>% 
   filter(habitat != "total") %>% 
@@ -137,10 +145,6 @@ main_table <- all_stocks_raw %>%
   # select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>% 
   select(continent, region, country, territory, everything())
 
-## Create table with fake data
-# fake_main <- main_table %>% 
-#   drop_na(area_ha)
-
 # extract total stock values for total country and each habitat
 # Questions: 
 # seagrass not included in total country stock calcs?
@@ -153,15 +157,13 @@ territory_tec <- all_stocks_raw %>%
   select(continent, region, country, everything())
 # idk if we'll use this table, but including it anyways
 
-
-
 ## ... Export App Data ####
 
 app_data <- list(
   main_table = main_table,
   territory_tec = territory_tec,
   map_input = map_input,
-  ccn_map = world_ccn
+  map_polys = map_polys
   )
 # tier2data = tier2stocks,
 # tier1data = tier1stocks,
@@ -175,121 +177,3 @@ app_data <- list(
 # export
 saveRDS(app_data, file = "app/data/app_data.rds")
 # rm(app_data) #removes from environment to run global script 
-
-
-## Archived Code ---------
-
-# Moving towards compiling app input verses splitting it into multiple tables
-# Easier to keep track of everything with one or two main tables
-
-
-## Curate area table- making names match
-# habitat_area <- all_stocks_raw %>% 
-#   select(country, territory, habitat, hectare, hectare_UpperCI, hectare_LowerCI) %>% 
-#   dplyr::rename(area_ha = hectare) 
-
-
-## Separate out Tier I Data - using stocks table from CCN-Data-Analytics 
-
-# tier1stocks <- all_stocks_raw %>% 
-#   filter(TierIorII == "Tier I") %>% 
-#   janitor::remove_empty(which = c("rows", "cols")) %>% 
-#   select(country, territory, habitat, TierI_mean, TierI_LowerCI, TierI_UpperCI) %>% 
-#   mutate(tier = "TierI",
-#          carbon_pool = "soil", #leave in? 
-#   ) %>% 
-#   dplyr::rename(stock_MgHa_mean = TierI_mean,
-#                 stock_MgHa_lowerCI = TierI_LowerCI,
-#                 stock_MgHa_upperCI = TierI_UpperCI)
-
-
-## Curate Tier I Data - Global Values
-
-# no_data_countries <- habitat_area %>% 
-#   select(country, ecosystem) %>% 
-#   filter(!country %in% unique(stocks$country))
-# 
-# # create placeholder table
-# global_values <- stocks %>% drop_na(habitat) %>% 
-#   distinct(country, habitat, carbon_pool) %>% 
-#   bind_rows(no_data_countries %>% mutate(carbon_pool = "soil")) %>% 
-#   bind_rows(no_data_countries %>% mutate(carbon_pool = "vegetation")) %>% 
-#   # placeholder numbers, need checking
-#   # also unsure about biomass activity data
-#   mutate(stock_MgHa = case_when(habitat == "mangrove" & carbon_pool == "soil" ~ 396,
-#                                 habitat == "marsh" & carbon_pool == "soil" ~ 297, 
-#                                 T ~ NA),
-#          tier = "global") %>% 
-#   arrange(country, habitat)  
-
-
-
-## Curate Tier II Data  - Country-level, Using stocks table calculated in CCN-Data-Analytics repo
-
-# tier2stocks <- all_stocks_raw %>% 
-#   filter(TierIorII == "Tier II") %>% 
-#   #select(-c(hectare, hectare_UpperCI, hectare_LowerCI))
-#   select(country, territory, habitat, stock_MgHa_mean,
-#          stock_MgHa_se, stock_MgHa_upper_CI, stock_MgHa_lower_CI) %>% 
-#   dplyr::rename(
-#     stock_MgHa_upperCI = stock_MgHa_upper_CI,
-#     stock_MgHa_lowerCI = stock_MgHa_lower_CI) %>% 
-#   mutate(tier = "TierII",
-#          carbon_pool = "soil") %>% 
-#   select(country, territory, habitat, tier, carbon_pool, everything())
-# 
-# #list of countries with no tier II data available 
-# tier2_list <- tibble(country = unique(tier2stocks$country))
-# 
-# no_tier2 <- anti_join(habitat_area, tier2_list) %>% #list of countries included in habitat area without a tier 2 value associated 
-#   select(country) %>% unique()
-# #reference for country insights
-
-
-## Curate compliled EF and Total Stock for country and habitat 
-
-# 
-# total_stock_habitat <- all_stocks_raw %>% 
-#   filter(!habitat == "total") %>% # isolating habitat-level totals per country 
-#   select(country, territory, habitat, Total_Stocks, 
-#          Total_Stockers_LowerCI, Total_Stockers_UpperCI, Total_Stocks_se) %>% 
-#   dplyr::rename(total_stocks = Total_Stocks, #in MgHa?
-#                 total_stocks_lower = Total_Stockers_LowerCI,
-#                 total_stocks_upper = Total_Stockers_UpperCI,
-#                 total_stocks_se = Total_Stocks_se)
-# 
-# total_stock_habitat_country <- full_join(total_stock_habitat, total_stocks_country) %>% 
-#   arrange(country)
-# 
-# 
-# #Compiled emissions factors and habitat 
-# EF_table <- all_stocks_raw %>% 
-#   select(country, territory, habitat, compiled_EF, compiled_LowerCI, compiled_UpperCI) %>% 
-#   filter(complete.cases(compiled_EF))
-# 
-# 
-# ## Curate Tier III Remote Sensing values
-# # countries with available Tier III values, from Sanderman et al 2018 and 
-# tierIII <- all_stocks_raw %>% 
-#   select(c(country, territory, habitat, TierIII_mean, TierIII_LowerCI, TierIII_UpperCI, 
-#            tierIII_gtlt_tier_II, tierII_overlaps_tierIII, tierIII_gtlt_tier_I, tierIII_overlaps_tierI)) %>% 
-#   filter(complete.cases(TierIII_mean)) %>% 
-#   dplyr::rename(stock_MgHa_mean = TierIII_mean,
-#                 stock_MgHa_lowerCI = TierIII_LowerCI,
-#                 stock_MgHa_upperCI = TierIII_UpperCI) %>% 
-#   mutate(tier = "Tier III") 
-
-
-## attempt to join impact classes...incorporate this later
-# core_impacts <- impacts %>% 
-#   drop_na(site_id) %>% drop_na(core_id) %>% 
-#   #select(-impact_notes) %>% 
-#   group_by(study_id, site_id, core_id) %>% 
-#   dplyr::summarise(impact_class = paste(unique(impact_class), collapse = ", "))
-# 
-# site_impacts <- impacts %>% 
-#   filter(is.na(core_id)) %>% select(-core_id) %>% 
-#   group_by(study_id, site_id) %>% 
-#   dplyr::summarise(site_impact_class = paste(unique(impact_class), collapse = ", "))
-
-

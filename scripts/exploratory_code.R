@@ -20,24 +20,63 @@ map_input %>% filter(country == selected_country) %>%
   ylab("Number of Samples") + theme_bw(base_size = 20) +
   theme(legend.position = "bottom")
 
+# make it plotly
+map_input %>% filter(country == selected_country) %>% 
+  dplyr::count(carbon_pool, habitat, country) %>% 
+  
+  plot_ly(x = ~habitat, y = ~n, type = "bar",
+          color = ~carbon_pool) 
+  # geom_col(aes(habitat, n, fill = carbon_pool)) +
+  # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+  # coord_flip() +
+  # ylab("Number of Samples") + theme_bw(base_size = 20) +
+  # theme(legend.position = "bottom")
+
 ## Emissions Factors (Carbon Stocks)
 
-main_table %>% filter(country == selected_country) %>% 
+ef <- main_table %>% filter(country == selected_country) %>% 
   select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>%
   select(habitat, contains("stock"), contains("Tier")) %>% 
   select(-contains("Total")) %>% 
   pivot_longer(cols = -habitat, names_to = "tier", values_to = "stock") %>% 
   separate(tier, into = c("carbon_pool", "tier", "stat"), sep = "_") %>% 
-  pivot_wider(id_cols = c("habitat", "carbon_pool", "tier"), names_from = stat, values_from = stock) %>% 
+  pivot_wider(id_cols = c("habitat", "carbon_pool", "tier"), names_from = stat, values_from = stock)
   
-  ggplot2::ggplot(aes(mean, habitat, col = tier)) +
-  # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
-  geom_errorbar(aes(xmin = lowerCI, xmax  = upperCI), width = 0.1) +
-  geom_point(size = 2, shape = 21, fill="white") +
-  theme_bw() +
-  facet_wrap(~`carbon_pool`, 
-             # scales = "free", 
-             dir = "v")
+
+ef %>% filter(carbon_pool == "soil") %>% 
+  plot_ly(., x = ~habitat, y = ~mean, type = "bar", 
+          # mode = "markers", 
+          color = ~tier, colors = "Set1",
+          error_y = ~list(array = se, color = "black")
+          # error_y = ~list(array = upperCI, color = "black"),
+          # error_y_minus = ~list(array = lowerCI, color = "black")
+          )
+
+  # ggplot2::ggplot(aes(mean, habitat, col = tier)) +
+  # # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
+  # geom_errorbar(aes(xmin = lowerCI, xmax  = upperCI), width = 0.1) +
+  # geom_point(size = 2, shape = 21, fill="white") +
+  # theme_bw() +
+  # facet_wrap(~`carbon_pool`, 
+  #            # scales = "free", 
+  #            dir = "v")
+
+# try another way
+
+geo_subset <- main_table %>% filter(country == selected_country) 
+
+plot_ly(geo_subset, x = ~habitat, y = ~soil_TierI_mean, type = "bar", 
+        error_y = ~list(array = soil_TierI_upperCI - soil_TierI_mean, 
+                        arrayminus = soil_TierI_mean - soil_TierI_lowerCI, color = "black"),
+        name = "IPCC global value") %>% 
+  add_trace(y = ~soil_TierII_mean, 
+            error_y = ~list(array = soil_TierII_upperCI - soil_TierII_mean, 
+                            arrayminus = soil_TierII_mean - soil_TierII_lowerCI, color = "black"),
+            name = "Country-specific value") %>% 
+  add_trace(y = ~soil_TierIII_mean, 
+            error_y = ~list(array = soil_TierIII_upperCI - soil_TierIII_mean, 
+                            arrayminus = soil_TierIII_mean - soil_TierIII_lowerCI, color = "black"),
+            name = "Modeled value") 
 
 ## Activity Data (Landuse/Habitat Area)
 
@@ -58,7 +97,7 @@ main_table %>% filter(country == selected_country) %>%
 
 main_table %>% 
   # filter(habitat == "marsh") %>% 
-  filter(habitat == "marsh") %>%
+  filter(habitat == "mangrove") %>%
   mutate(highlight = case_when(country == selected_country ~ T, T ~ F)) %>% 
   drop_na(area_ha) %>%
   
@@ -66,7 +105,7 @@ main_table %>%
   geom_errorbar(aes(xmin = area_ha_lowerCI, xmax  = area_ha_upperCI), width = 0.1) +
   geom_point(size = 1, shape = 21, fill="white") +
   theme_bw()
-  # facet_wrap(~habitat)
+  # facet_wrap(~continent)
   
 ## Available Data Quantity
 

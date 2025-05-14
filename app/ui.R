@@ -36,18 +36,26 @@ fluidPage(
                           #             #selected = "Belize"
                           # ),
                         
-                          
                           selectizeInput(inputId = "chosen_geography",
                                          label = "Select a geography",
                                          choices = unique(main_table$territory) %>% sort(),
                                          selected = NULL,
-                                         multiple = T,
+                                         multiple = T, # this should be F eventually 
                                          options = list(placeholder = 'Select a geography')
 
                           ),
                           
                           
                           br(),
+                          
+                          tags$b("Reset map to world view"), 
+                          actionButton(
+                            inputId = "reset",
+                            label = "Reset Map",
+                            class = "btn-info"
+                          ), 
+                          
+                          tags$br(),
                           
                           helpText("Please direct any questions or suggestions to CoastalCarbon@si.edu"),
                           
@@ -59,12 +67,6 @@ fluidPage(
                         ),
                         
                         mainPanel(
-                          actionButton(
-                            inputId = "reset",
-                            label = "Reset Map",
-                            class = "btn-info"
-                          ), 
-                          
                           # fluidRow(
                           #   div(id = "value_box_row",
                           #       valueBoxOutput("num_cores", width = 3),
@@ -76,17 +78,17 @@ fluidPage(
                             
                             fluidRow( # or use splitLayout()?...doesn't seem to facilitate text wrapping
                             
-                              column(leafletOutput("map"), width = 5),
+                              column(leafletOutput("map"), width = 6),
                               
                               column(
                                  # p("This section will contain information about the available data for the selected country."),
                                      
                                      tabsetPanel(type = "tabs",
-                                                 tabPanel("Data Status", plotOutput("datastatus")),
+                                                 tabPanel("Data Status", plotlyOutput("datastatus")),
                                                  tabPanel("Emissions Factors", plotlyOutput("efplot")),
-                                                 tabPanel("Activity Data", plotOutput("activityplot")),
+                                                 tabPanel("Activity Data", plotlyOutput("activityplot")),
                                      ),
-                                     width = 5)
+                                     width = 6)
                             ),
                             
                             fluidRow(

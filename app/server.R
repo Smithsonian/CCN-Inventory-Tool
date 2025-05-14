@@ -17,7 +17,7 @@ function(input, output, session) {
       modalDialog(
         title = "Welcome to the Coastal Carbon Inventory Tool!",
         easyClose = T,
-        "Please select your country or territory in the dropdown menu to see country-level carbon stocks estimates, data visualizations and more"
+        "Please select your country or territory in the dropdown menu to see country-level carbon stocks estimates, data visualizations and more."
       )
     )
   }) 
@@ -25,7 +25,7 @@ function(input, output, session) {
   
   r <- reactive(
     # which(map_input$country == input$chosen_country)
-    world_ne %>% filter(territory == input$chosen_geography)
+    map_polys %>% filter(territory == input$chosen_geography)
   )
   
   geography_subset <- reactive({
@@ -33,19 +33,12 @@ function(input, output, session) {
   })
 
   dat <- reactive({
-    map_input %>% filter(country == input$chosen_geography)
+    map_input %>% filter(territory == input$chosen_geography)
   })
 
   ## Map -------------------
-  
-  # output$map <- renderLeaflet({
-  #   leaflet(options = leafletOptions()) %>%
-  #     addTiles() %>% 
-  #     fitBounds(-135, -50, 145, 60) # initial conditions
-  # })
-  
-  
 
+  # Feature: Zoom options for globe or particular country
 #initial map state --> world map with all cca samples   
   output$map <-
     
@@ -53,21 +46,16 @@ function(input, output, session) {
 
       leaflet() %>% 
         # basemap options
-        addTiles(group = "OSM (default)") %>%
         addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+        addTiles(group = "OSM (default)") %>%
         
         # add data points (global cca samples)
         addCircleMarkers(data = map_input,
                          lng = ~longitude, lat = ~latitude, radius = 2,
-                         label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
-                         group = "Samples") %>% 
-        
-        addLayersControl(
-          baseGroups = c("OSM (default)", "CartoDB"),
-          overlayGroups = c("Samples"),
-          options = layersControlOptions(collapsed = FALSE)
-        )
-      
+                         label = ~paste(habitat, carbon_pool, "data", sep = " "),
+                         group = "Samples", 
+                         # eventually have veg be plotted separately for color coding
+                         color = "green") 
     })
   
   
@@ -79,25 +67,17 @@ function(input, output, session) {
     # using leafletProxy to call in original map 
     leafletProxy(mapId = "map") %>%
       # reset map layers
-      clearMarkers() %>% clearControls() %>% 
-      
-      # basemap options
-      addTiles(group = "OSM (default)") %>%
-      addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+      # clearMarkers() %>%
+      # clearControls() %>% 
+      clearShapes() %>% 
 
       # add polygon layer
-      addPolygons(data = r(), weight = 2,
+      addPolygons(data = r(), weight = 2, fill = F,
                   group = "Border") %>%
 
-      # add new markers
-      addCircleMarkers(data = dat(),
-                       lng = ~longitude, lat = ~latitude, radius = 2,
-                       label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
-                       group = "Samples", 
-                       color = "purple") %>% 
-      
       # #auto zoom to selection
-      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>% 
+      # fitBounds is more straightforward, but people love a smooth transition
+      flyToBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>% 
       
       #add layer options 
       addLayersControl(
@@ -112,25 +92,9 @@ function(input, output, session) {
 #reset to original world map, linked to action button   
  observeEvent(input$reset, {
     
-    output$map <- renderLeaflet({
-      
-      leaflet() %>% 
-        # basemap options
-        addTiles(group = "OSM (default)") %>%
-        addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
-        # add data points 
-        addCircleMarkers(data = map_input,
-                         lng = ~longitude, lat = ~latitude, radius = 2,
-                         label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
-                         group = "Samples") %>% 
-        
-        addLayersControl(
-          baseGroups = c("OSM (default)", "CartoDB"),
-          overlayGroups = c("Samples"),
-          options = layersControlOptions(collapsed = FALSE)
-        )
-      
-    })
+   leafletProxy(mapId = "map") %>% 
+     clearShapes() %>% clearControls() %>% 
+     flyToBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4])
  })
 
  #trying to connect reset button for map to dropdown menu, clearing the map and country selection 
@@ -144,124 +108,112 @@ function(input, output, session) {
  #   )
  #   
  # })
- 
-  # output$map <- renderLeaflet({
-  #   # leaflet(r(), options = leafletOptions()) %>%
-  #   #   addTiles() %>% 
-  #   #   addPolygons(weight = 2)
-  #     # setView(lng = -88, lat = 17, zoom = 6) %>% 
-  #     # fitBounds(lng1 = map_input$longitude_max[r()], lng2 = map_input$longitude_min[r()],
-  #               # lat1 = map_input$latitude_max[r()], lat2 = map_input$latitude_min[r()])
-  #   
-  #   leaflet() %>% 
-  #     # basemap options
-  #     addTiles(group = "OSM (default)") %>%
-  #     addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
-  #     
-  #     # add polygon layer
-  #     addPolygons(data = r(), weight = 2, 
-  #                 # fill = FALSE, 
-  #                 group = "Border") %>% 
-  #     
-  #     # add data points 
-  #     # for cores
-  #     addCircleMarkers(data = dat(),
-  #                      # data = map_input %>% 
-  #                      #                  drop_na(latitude) %>% 
-  #                      #                  filter(country == input$chosen_country) %>% 
-  #                      #                  filter(carbon_pool == "soil"), 
-  #                      lng = ~longitude, lat = ~latitude, radius = 2,
-  #                      label = ~paste(habitat, carbon_pool, "data", sep = " "), # or have veg be plotted separately for color coding?
-  #                      group = "Samples") %>% 
-  #     
-  #     addLayersControl(
-  #       baseGroups = c("OSM (default)", "CartoDB"),
-  #       overlayGroups = c("Samples", "Border"),
-  #       options = layersControlOptions(collapsed = FALSE)
-  #     )
-  #   
-  #}) #%>% bindEvent(input$go)
-  
   
   ## Plots ----------------
   
-  ## Data Status
-  ## quantity, quality, representation 
-  output$datastatus <- renderPlot({
-    
-    #case where there are cores available in CCA 
-    #if(input$chosen_country %in% datastatus_counts$country){
-    
-    # quantity_table <- datastatus_counts %>% 
-    #   dplyr::filter(country == input$chosen_country) %>% 
-    #   mutate(data_tier_available = ifelse(!is.na(n_cores), "Tier II", "Tier I"))
-    
-    dat() %>% 
-      dplyr::count(carbon_pool, habitat, country) %>% 
-      
-      ggplot2::ggplot() + 
-      geom_col(aes(habitat, n, fill = carbon_pool)) +
-      # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
-      coord_flip() +
-      ylab("Number of Samples") + theme_bw(base_size = 20) +
-      theme(legend.position = "bottom")
-    
-    # } else {
-    #   table_other <- tibble(country = input$chosen_country,
-    #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
-    #                         data_tier_available = "Tier I")
-    # }
-  }) #%>% bindEvent(input$go)
+ ## Data Status
+ ## quantity, quality, representation 
+ output$datastatus <- renderPlotly({
+   req(input$chosen_geography)
+   
+   #case where there are cores available in CCA 
+   #if(input$chosen_country %in% datastatus_counts$country){
+   dat() %>% 
+     dplyr::count(carbon_pool, habitat, territory) %>% 
+     plot_ly(x = ~habitat, y = ~n, type = "bar",
+             color = ~carbon_pool) %>% 
+     layout(xaxis = list(title = "Habitat Type"),
+            yaxis = list(title = "Number of Samples"))
+   # include legend even when theres just one type of sample
+   # specify what a sample unit is: soils = core; vegetation = plot
+   
+   # dat() %>% 
+   #   dplyr::count(carbon_pool, habitat, country) %>% 
+   #   
+   #   ggplot2::ggplot() + 
+   #   geom_col(aes(habitat, n, fill = carbon_pool)) +
+   #   # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+   #   coord_flip() +
+   #   ylab("Number of Samples") + theme_bw(base_size = 20) +
+   #   theme(legend.position = "bottom")
+   
+   # } else {
+   #   table_other <- tibble(country = input$chosen_country,
+   #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
+   #                         data_tier_available = "Tier I")
+   # }
+ }) #%>% bindEvent(input$go)
   
-  ## Emission Factor plot
-  output$efplot <- renderPlotly({
-    ggplotly(
-      
-      geography_subset() %>% 
-        select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>%
-        select(habitat, contains("stock"), contains("Tier")) %>% 
-        select(-contains("Total")) %>% 
-        pivot_longer(cols = -habitat, names_to = "tier", values_to = "stock") %>% 
-        separate(tier, into = c("carbon_pool", "tier", "stat"), sep = "_") %>% 
-        pivot_wider(id_cols = c("habitat", "carbon_pool", "tier"), names_from = stat, values_from = stock) %>% 
-        
-        ggplot2::ggplot(aes(mean, habitat, col = tier)) +
-        # geom_boxplot(aes(stock_MgHa, habitat, col = `carbon pool`)) +
-        geom_errorbar(aes(xmin = lowerCI, xmax  = upperCI), width = 0.1) +
-        geom_point(size = 2, shape = 21, fill="white") +
-        theme_bw() +
-        facet_wrap(~`carbon_pool`, 
-                   # scales = "free", 
-                   dir = "v")
-        # theme(legend.position = "bottom")
-        
-    )
-  }) #%>% bindEvent(input$go)
+ ## Emission Factor plot
+ # what about veg?
+ output$efplot <- renderPlotly({
+   req(input$chosen_geography)
+   
+   plot_ly(geography_subset(), x = ~habitat, y = ~soil_TierI_mean, type = "bar", 
+           error_y = ~list(array = soil_TierI_upperCI - soil_TierI_mean, 
+                           arrayminus = soil_TierI_mean - soil_TierI_lowerCI, color = "black"),
+           name = "IPCC global value") %>% 
+     add_trace(y = ~soil_TierII_mean, 
+               error_y = ~list(array = soil_TierII_upperCI - soil_TierII_mean, 
+                               arrayminus = soil_TierII_mean - soil_TierII_lowerCI, color = "black"),
+               name = "Country-specific value") %>% 
+     add_trace(y = ~soil_TierIII_mean, 
+               error_y = ~list(array = soil_TierIII_upperCI - soil_TierIII_mean, 
+                               arrayminus = soil_TierIII_mean - soil_TierIII_lowerCI, color = "black"),
+               name = "Modeled value") %>% 
+     layout(
+       # title = "",
+       xaxis = list(title = "Habitat Type"),
+       yaxis = list(title = "Soil Carbon Stock (Mg/ha)"))
+   
+ }) #%>% bindEvent(input$go)
   
   ## Activity Data
-  output$activityplot <- renderPlot({
+  output$activityplot <- renderPlotly({
+    req(input$chosen_geography)
     
-    # countrydata %>% 
-      #dplyr::filter(complete.cases(area_ha)) %>% 
-      # dplyr::filter(country == input$chosen_country) %>% 
-      ggplot2::ggplot(geography_subset()) + 
-      geom_col(aes(habitat, area_ha, fill = habitat)) +
-      geom_errorbar(aes(x= habitat, ymin = area_ha_lowerCI, ymax = area_ha_upperCI, y= area_ha), width = 0.1) +
-      coord_flip() +
-      ylab("Area (hectares)") + theme_bw(base_size = 20) +
-      theme(legend.position = "bottom")
-    # make it an option to change plotting units (ex. km^2)
+    geography_subset() %>% 
+      plot_ly(x = ~habitat, y = ~area_ha, type = "bar",
+              # color = ~habitat, colors = "Set1",
+              error_y = ~list(array = area_ha_upperCI - area_ha, 
+                              arrayminus = area_ha - area_ha_lowerCI, color = "black")) %>% 
+      layout(xaxis = list(title = "Habitat Type"),
+             yaxis = list(title = "Area (ha)"))
+    # custom formatting options
+    # layout(xaxis = list(title = 'Habitat',
+    #                     zerolinecolor = '#ffff',
+    #                     zerolinewidth = 2,
+    #                     gridcolor = 'ffff'),
+    #        yaxis = list(title = 'Area (Ha)',
+    #                     zerolinecolor = '#ffff',
+    #                     zerolinewidth = 2,
+    #                     gridcolor = 'ffff'),
+    #        plot_bgcolor='#e5ecf6')
+    
+    # make it an option to change plotting units? (ex. km^2)
     
   }) #%>% bindEvent(input$go)
 
-  
   ## Tables --------------
     
   output$tec <- renderDT({
+    req(input$chosen_geography)
     
     # need to format the names of the table columns to be more user friendly
-    
-    DT::datatable(geography_subset(), 
+    DT::datatable(geography_subset() %>% 
+                    mutate(`Reporting Tier` = case_when(TierIorII == "Tier II" ~ "Country-specific value", 
+                                                        TierIorII == "Tier I" ~ "IPCC global value", T ~ TierIorII)) %>% 
+                    select(country, territory, habitat, area_ha, contains("compiled"), `CO2eq (TgC)`, 
+                           `Reporting Tier`, tier_II_overlaps_TierI) %>% 
+                    mutate(across(area_ha:compiled_LowerCI, ~round(.x, 2))) %>% 
+                    rename(Country = country, Territory = territory, 
+                           Habitat = habitat, 
+                           `Reporting Insight` = tier_II_overlaps_TierI,
+                           `Mean Stock Upper CI (Mg/ha)` = compiled_UpperCI,
+                           `Mean Stock Lower CI (Mg/ha)` = compiled_LowerCI,
+                           `Mean Stock (Mg/ha)` = compiled_EF,
+                           `Habitat Area (ha)` = area_ha),
+                  
                   caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_geography),
                   options = list(searching = FALSE,
                                  paging = FALSE,
@@ -281,9 +233,10 @@ function(input, output, session) {
     },
     # copy PDF file from the folder containing the pre-generated reports
     content = function(file) {
-      file.copy(paste0("www/reports", input$chosen_geography, "_Report.pdf"), file) 
+      file.copy(paste0("www/reports/", input$chosen_geography, "_Detailed_Insights.pdf"), file)
       
       # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
+      # Potential add: option to download PDF or HTML version
     }
   )
   
