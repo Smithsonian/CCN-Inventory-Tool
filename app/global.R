@@ -21,6 +21,9 @@ library(ggplot2)
 library(knitr)
 library(sf)
 
+# source utilities
+source("utils.R")
+
 ## Data ----
 
 # load data

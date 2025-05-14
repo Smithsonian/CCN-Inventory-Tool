@@ -37,11 +37,11 @@ fluidPage(
                           tags$b("Reset map to world view"), 
                           actionButton(
                             inputId = "reset",
-                            label = "Reset Map",
+                            label = "Reset",
                             class = "btn-info"
                           ), 
                           
-                          tags$br(),
+                          div(style="margin-bottom:30px"), 
                           
                           helpText("Please direct any questions or suggestions to CoastalCarbon@si.edu"),
                           
@@ -70,6 +70,12 @@ fluidPage(
                                  # p("This section will contain information about the available data for the selected country."),
                                      
                                      tabsetPanel(type = "tabs",
+                                                 tabPanel("Global Stocks", 
+                                                          radioButtons(inputId = "chosen_habitat",
+                                                                       label = "Select a habitat", 
+                                                                       choices = c("mangrove", "marsh", "seagrass"), 
+                                                                       inline = T),
+                                                          plotOutput("worldstockplot")),
                                                  tabPanel("Data Status", plotlyOutput("datastatus")),
                                                  tabPanel("Emissions Factors", plotlyOutput("efplot")),
                                                  tabPanel("Activity Data", plotlyOutput("activityplot")),

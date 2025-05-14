@@ -22,7 +22,6 @@ function(input, output, session) {
     )
   }) 
   
-  
   r <- reactive(
     # which(map_input$country == input$chosen_country)
     map_polys %>% filter(territory == input$chosen_geography)
@@ -96,21 +95,17 @@ function(input, output, session) {
      clearShapes() %>% clearControls() %>% 
      flyToBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4])
  })
+  
+ ## Plots ----------------
+  
+ ## Global Stock Plot
+ output$worldstockplot <- renderPlot({
+   req(input$chosen_habitat)
+   
+   globalStocks(main_table, input$chosen_habitat)
 
- #trying to connect reset button for map to dropdown menu, clearing the map and country selection 
- # observeEvent(input$reset, {
- #   
- #   updateSelectizeInput(
- #     session, "chosen_geography", 
- #     choices = unique(main_table$territory) %>% sort(),
- #     selected = NULL,
- #     multiple = T
- #   )
- #   
- # })
-  
-  ## Plots ----------------
-  
+ })
+ 
  ## Data Status
  ## quantity, quality, representation 
  output$datastatus <- renderPlotly({
@@ -203,10 +198,10 @@ function(input, output, session) {
     DT::datatable(geography_subset() %>% 
                     mutate(`Reporting Tier` = case_when(TierIorII == "Tier II" ~ "Country-specific value", 
                                                         TierIorII == "Tier I" ~ "IPCC global value", T ~ TierIorII)) %>% 
-                    select(country, territory, habitat, area_ha, contains("compiled"), `CO2eq (TgC)`, 
+                    select(territory, habitat, area_ha, contains("compiled"), `CO2eq (TgC)`, 
                            `Reporting Tier`, tier_II_overlaps_TierI) %>% 
                     mutate(across(area_ha:compiled_LowerCI, ~round(.x, 2))) %>% 
-                    rename(Country = country, Territory = territory, 
+                    rename(`Country or Territory` = territory, 
                            Habitat = habitat, 
                            `Reporting Insight` = tier_II_overlaps_TierI,
                            `Mean Stock Upper CI (Mg/ha)` = compiled_UpperCI,

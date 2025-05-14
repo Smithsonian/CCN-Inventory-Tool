@@ -2,15 +2,15 @@
 ## Source prepare app data first...
 source("scripts/prepare_app_data.R")
 
-library(tidyverse)
+# library(tidyverse)
 
-selected_country <- "Belize"
+selected_geo <- "Belize"
 
 ## Country-specific Figures ####
 
 ## Data Metrics
 
-map_input %>% filter(country == selected_country) %>% 
+map_input %>% filter(country == selected_geo) %>% 
   dplyr::count(carbon_pool, habitat, country) %>% 
   
   ggplot2::ggplot() + 
@@ -21,7 +21,7 @@ map_input %>% filter(country == selected_country) %>%
   theme(legend.position = "bottom")
 
 # make it plotly
-map_input %>% filter(country == selected_country) %>% 
+map_input %>% filter(country == selected_geo) %>% 
   dplyr::count(carbon_pool, habitat, country) %>% 
   
   plot_ly(x = ~habitat, y = ~n, type = "bar",
@@ -32,9 +32,25 @@ map_input %>% filter(country == selected_country) %>%
   # ylab("Number of Samples") + theme_bw(base_size = 20) +
   # theme(legend.position = "bottom")
 
+# try a Pie Chart
+map_input %>% 
+  # filter(country == selected_geo) %>% 
+  filter(carbon_pool == "soil") %>%
+  mutate(n = 1) %>% # bit of a hack but it works
+  # dplyr::count(habitat, territory) %>% 
+  # mutate(pct = 100*(n/sum(n))) %>% # plotly does this for you!
+  
+  plot_ly(labels = ~habitat, values = ~n) %>% 
+  add_pie(hole = 0.6,
+          textinfo='label+percent',
+          insidetextorientation='radial') %>% 
+  layout(showlegend = F)
+# don't know how to facet this into soils and vegetation
+# maybe I should use cards for data status
+
 ## Emissions Factors (Carbon Stocks)
 
-ef <- main_table %>% filter(country == selected_country) %>% 
+ef <- main_table %>% filter(country == selected_geo) %>% 
   select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>%
   select(habitat, contains("stock"), contains("Tier")) %>% 
   select(-contains("Total")) %>% 
@@ -63,7 +79,7 @@ ef %>% filter(carbon_pool == "soil") %>%
 
 # try another way
 
-geo_subset <- main_table %>% filter(country == selected_country) 
+geo_subset <- main_table %>% filter(country == selected_geo) 
 
 plot_ly(geo_subset, x = ~habitat, y = ~soil_TierI_mean, type = "bar", 
         error_y = ~list(array = soil_TierI_upperCI - soil_TierI_mean, 
@@ -80,7 +96,7 @@ plot_ly(geo_subset, x = ~habitat, y = ~soil_TierI_mean, type = "bar",
 
 ## Activity Data (Landuse/Habitat Area)
 
-main_table %>% filter(country == selected_country) %>% 
+main_table %>% filter(country == selected_geo) %>% 
   ggplot2::ggplot() + 
   geom_col(aes(habitat, area_ha, fill = habitat)) +
   geom_errorbar(aes(x= habitat, ymin = area_ha_lowerCI, ymax = area_ha_upperCI, y= area_ha), width = 0.1) +
@@ -98,7 +114,7 @@ main_table %>% filter(country == selected_country) %>%
 main_table %>% 
   # filter(habitat == "marsh") %>% 
   filter(habitat == "mangrove") %>%
-  mutate(highlight = case_when(country == selected_country ~ T, T ~ F)) %>% 
+  mutate(highlight = case_when(country == selected_geo ~ T, T ~ F)) %>% 
   drop_na(area_ha) %>%
   
   ggplot(aes(area_ha, reorder(territory, area_ha), col = highlight)) + 
