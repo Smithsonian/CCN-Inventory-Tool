@@ -26,25 +26,11 @@ fluidPage(
                           br(), # vertical spacing
 
                           # select a country
-                          # selectInput(inputId = "chosen_country",
-                          #             label = "Select a geography",
-                          #             choices = unique(main_table$territory) %>% sort()
-                          #             # drop_na(country) %>%
-                          #               # arrange(country) %>%
-                          #               # distinct(country) %>%
-                          #               # pull(country),
-                          #             #selected = "Belize"
-                          # ),
-                        
-                          selectizeInput(inputId = "chosen_geography",
-                                         label = "Select a geography",
-                                         choices = unique(main_table$territory) %>% sort(),
-                                         selected = NULL,
-                                         multiple = T, # this should be F eventually 
-                                         options = list(placeholder = 'Select a geography')
-
+                          selectInput(inputId = "chosen_geography",
+                                      label = "Select a geography",
+                                      choices = c(Choose='', unique(main_table$territory) %>% sort()),
+                                      selectize = F
                           ),
-                          
                           
                           br(),
                           

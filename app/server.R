@@ -72,7 +72,7 @@ function(input, output, session) {
       clearShapes() %>% 
 
       # add polygon layer
-      addPolygons(data = r(), weight = 2, fill = F,
+      addPolygons(data = r(), weight = 2, fill = T, opacity = 0.1,
                   group = "Border") %>%
 
       # #auto zoom to selection
