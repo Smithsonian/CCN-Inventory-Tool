@@ -17,7 +17,6 @@ library(dplyr)
 library(readr)
 library(tidyr)
 library(ggplot2)
-# library(rnaturalearth)
 library(knitr)
 library(sf)
 
@@ -33,19 +32,6 @@ app_data <- readRDS("data/app_data.rds")
 main_table <- app_data$main_table
 map_input <- app_data$map_input
 map_polys <- app_data$map_polys
-
-# configure main table
-countrydata <- main_table %>% 
-  dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
-                `CO2eq (TgC)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2)) 
-
-#   # upscale estimates using habitat area
-#   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
-#                 `stock avg (TgC)` = round(stock_MgHa_mean * area_ha / 10^6, 2),
-#                 # stock_TgC_se = round(stock_MgHa_se * area_ha / 10^6, 2),
-#                 # calculate co2 equivalent
-#                 `CO2eq (TgC)` = round(stock_MgHa_mean * area_ha * 3.67 / 10^6, 2),
-#                 `CO2eq SE (TgC)` = round(stock_MgHa_se * area_ha * 3.67 / 10^6, 2)) 
 
 ## Map Input ----
 

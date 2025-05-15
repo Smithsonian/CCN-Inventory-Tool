@@ -19,9 +19,7 @@
 globalStocks <- function(x, var){
   
   p <- x %>% 
-    mutate(territory = case_when(territory == "Federated States of Micronesia" ~ "Micronesia",
-                                 territory == "Democratic Republic of the Congo" ~ "Congo DRC",
-                                 T ~ territory)) %>% 
+    mutate(territory = recode(territory, "Democratic Republic of the Congo" = "Congo DRC")) %>% 
     filter(habitat == var) %>% 
     drop_na(soil_TierII_mean) %>%
     mutate(territory = paste0(territory, ", n = ", n_cores)) %>% 
@@ -33,6 +31,7 @@ globalStocks <- function(x, var){
     geom_errorbar() +
     theme_bw(base_size = 15)
   
+  # apply appropriate IPCC global value for selected habitat
   switch(var,
          "mangrove" = {
            p <- p + 

@@ -107,9 +107,6 @@ map_input <- bind_rows(core_stocks, biomass_stocks) %>%
   mutate(impact_class = case_when(is.na(impact_class) ~ "unknown",
                                   impact_class == "NA" ~ "unknown",
                                   T ~ impact_class)) %>%
-  #        tier = "country") %>% 
-  #rename(ecosystem = habitat) %>% #standardizing column names across tables? 
-  # select(-c(plot_id, year, impact_class)) %>% 
   drop_na(latitude, longitude) %>% 
   select(country, territory, admin_division, everything())
 
@@ -117,7 +114,8 @@ map_input <- bind_rows(core_stocks, biomass_stocks) %>%
 
 veg_smry <- biomass_stocks %>% 
   dplyr::group_by(country, territory, habitat) %>% 
-  dplyr::summarise(veg_TierII_mean = mean(stock_MgHa), 
+  dplyr::summarise(n_plots = n(),
+                   veg_TierII_mean = mean(stock_MgHa), 
                    veg_TierII_se = se(stock_MgHa))
 
 main_table <- all_stocks_raw %>% 
@@ -140,10 +138,23 @@ main_table <- all_stocks_raw %>%
                 "soil_TierI_upperCI" = "TierI_UpperCI") %>% 
   # add biomass data
   ## Mangrove IPCC Tier I Biomass EF: Total (511) - Soil (386) = Veg (125) Mg/Ha
-  mutate(veg_TierI_Mean = case_when(habitat == "mangrove" ~ 125, T ~ NA)) %>% 
+  mutate(veg_TierI_Mean = case_when(habitat == "mangrove" ~ 125, T ~ NA),
+         `habitat area (Ha)` = round(area_ha, 2),
+         `CO2eq (TgC)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2),
+         country = recode(country, "Federated States of Micronesia" = "Micronesia"),
+         territory = recode(territory, "Federated States of Micronesia" = "Micronesia")) %>% 
   select_if(~!all(is.na(.))) %>% 
+  filter(!is.na(area_ha) & area_ha != 0) %>% 
   # select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>% 
   select(continent, region, country, territory, everything())
+
+#   # upscale estimates using habitat area
+#   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
+#                 `stock avg (TgC)` = round(stock_MgHa_mean * area_ha / 10^6, 2),
+#                 # stock_TgC_se = round(stock_MgHa_se * area_ha / 10^6, 2),
+#                 # calculate co2 equivalent
+#                 `CO2eq (TgC)` = round(stock_MgHa_mean * area_ha * 3.67 / 10^6, 2),
+#                 `CO2eq SE (TgC)` = round(stock_MgHa_se * area_ha * 3.67 / 10^6, 2)) 
 
 # extract total stock values for total country and each habitat
 # Questions: 

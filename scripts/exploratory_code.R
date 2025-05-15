@@ -48,6 +48,23 @@ map_input %>%
 # don't know how to facet this into soils and vegetation
 # maybe I should use cards for data status
 
+# data quantity metric
+main_table %>%
+  group_by(territory, habitat) %>% 
+  # subdivide habitat by soils vs veg sampling
+  mutate(soil_effort = n_cores/area_ha*1000, 
+         veg_effort = n_plots/area_ha*1000) %>% 
+  select(territory, habitat, soil_effort, veg_effort) %>% 
+  pivot_longer(cols = -c(territory, habitat), 
+               names_to = "carbon_pool", values_to = "effort", values_drop_na = T) %>% 
+  mutate(carbon_pool = gsub("_effort", "", carbon_pool)) %>% 
+  filter(territory == selected_geo) %>% 
+  ggplot(aes(effort, reorder(habitat, effort), fill = carbon_pool)) +
+  geom_col(position = "dodge") +
+  theme_bw() +
+  ylab("Habitat") +
+  xlab("Sampling Effort (Number/1000ha wetland)")
+
 ## Emissions Factors (Carbon Stocks)
 
 ef <- main_table %>% filter(country == selected_geo) %>% 

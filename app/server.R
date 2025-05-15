@@ -28,7 +28,7 @@ function(input, output, session) {
   )
   
   geography_subset <- reactive({
-    countrydata %>% filter(territory == input$chosen_geography)
+    main_table %>% filter(territory == input$chosen_geography)
   })
 
   dat <- reactive({
@@ -108,6 +108,8 @@ function(input, output, session) {
  
  ## Data Status
  ## quantity, quality, representation 
+ # use value boxes instead to express: # soil cores; # habitats represented; # plots surveyed
+ # the plot should be that of the area-normalized sampling effort
  output$datastatus <- renderPlotly({
    req(input$chosen_geography)
    
