@@ -85,10 +85,11 @@ fluidPage(
                             
                             fluidRow(
                               tabsetPanel(type = "tabs",
-                                          tabPanel("Detailed Insight", 
+                                          tabPanel("Stocks Table", DTOutput("tec")),
+                                          tabPanel("Download Report", 
                                                    tags$br(), 
                                                    
-                                                   tags$b("Insight about data available for selected country."),
+                                                   tags$b("Insight about data available for selected territory. Please navigate to the `Reports` tab to view report in browser."),
                                                    
                                                    tags$br(), tags$br(), 
                                                    
@@ -96,9 +97,13 @@ fluidPage(
                                                    
                                                    downloadButton("downloadReport", 
                                                                   label = "Download Report", 
+                                                                  class = "btn-primary"),
+                                                   tags$br(), tags$br(),
+                                                   
+                                                   downloadButton("downloadTable",
+                                                                  label = "Download Stocks Table",
                                                                   class = "btn-primary")), 
                                           #tabPanel("Detailed Insight", includeMarkdown("country_insights.md")), #this renders .md
-                                          tabPanel("Stocks Table", DTOutput("tec"))
                                           # tabPanel("TEC", p("TEC plot"))
                               ),
                               width = 10)
@@ -112,7 +117,14 @@ fluidPage(
              tabPanel(
                "About", 
                includeMarkdown("about.md")),
-             
+             tabPanel(
+               "Methods",
+               includeMarkdown("methods.md")
+             ),
+             tabPanel(
+               "Reports",
+               htmlOutput("report") #include report html as reports tab 
+             ),
              # navbarMenu("More",
              #            tabPanel("Sub-Component A"),
              #            tabPanel("Sub-Component B")),

@@ -19,6 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(knitr)
 library(sf)
+library(shinyBS)
 
 # source utilities
 source("utils.R")

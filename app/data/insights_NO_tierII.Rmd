@@ -45,8 +45,9 @@ selectCountry <- function(df){
 #pull in curated app data, filtered to chosen territory 
 app_data <- readRDS("app_data.rds") 
 allstocks <- app_data$main_table %>% selectGeography()
-totalstocks <- app_data$territory_tec
+#totalstocks <- app_data$territory_tec doesn't exist anymore 
 map_input <- app_data$map_input #no territory listed 
+map <- app_data$map_polys %>% selectGeography()
 
 rm(app_data) #keeps the rds out of the environment 
 ```
@@ -67,22 +68,16 @@ area_high_marsh <- marsh_area$area_ha_upperCI
 
 #seagrass values 
 seagrass_area <- allstocks %>% filter(habitat == "seagrass")
-area_ha_seagrass <- seagrass_area$area_ha
-area_low_seagrass <- seagrass_area$area_ha_lowerCI
-area_high_seagrass <- seagrass_area$area_ha_upperCI
+area_ha_seagrass <- as.numeric(seagrass_area$area_ha)
+area_low_seagrass <- as.numeric(seagrass_area$area_ha_lowerCI)
+area_high_seagrass <- as.numeric(seagrass_area$area_ha_upperCI)
 ```
 
 ```{r total stocks, echo=FALSE}
-##3/24 update -- redo all of this 
-countrystock <- totalstocks %>% 
-  selectGeography()
-  #selectCountry()
-
-#total stocks// per total territory 
-stock_country <- countrystock$Total_Stocks
-stock_country_low <- countrystock$Total_Stockers_LowerCI
-stock_country_high <- countrystock$Total_Stockers_UpperCI
-stock_country_se <- countrystock$Total_SE
+#5/30 - need to redo all of this bc of changes in rds 
+# countrystock <- totalstocks %>% 
+#   selectGeography()
+#   #selectCountry()
 
 #total stocks per habitat per territory 
 #this is now taken from different table 
@@ -123,21 +118,18 @@ Resources referenced to calculate Carbon stock estimates for **`r chosen_geog`**
 
 If you have any questions or data you would like to add to the Coastal Carbon Network, please reach out to us at [CoastalCarbon\@si.edu](mailto:CoastalCarbon@si.edu){.email}.
 
-```{r, echo=FALSE}
-
-select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
-  dplyr::select(territory = admin) %>% 
-  dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
-  filter(territory == chosen_geog)
+```{r, echo=FALSE, warning=FALSE}
+# "map" is created in set-up chunk using imported polygons 
+# tier I <- no CCN samples
 
 leaflet() %>%
   # basemap options
-  addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers
+  addTiles(group = "OSM (default)") %>% 
 
   #add polygon layer for selected territory border
-  addPolygons(data = select_map_territory, weight = 2)
+  addPolygons(data = map, weight = 2)
 
-#knitr::include_graphics(paste0("reports/",chosen_geog,".png"))
+
 ```
 
 ## Total Carbon Stock Estimates
@@ -146,28 +138,32 @@ Total Carbon stock estimates were calculated for each geography in total, and fo
 
 ### Country Level Total Stock Estimates
 
-We estimate that **`r chosen_geog`** contains between **`r signif(stock_country_low, 6)`** to **`r signif(stock_country_high, 6)`** metric tonnes of soil Carbon to a depth of 1 meter, with a mean estimate of **`r signif(stock_country, 6)`** metric tonnes soil Carbon.
+```{r, echo=TRUE}
+# We estimate that **`r chosen_geog`** contains between **`r signif(stock_country_low, 4)`** to **`r signif(stock_country_high, 4)`** metric tonnes of soil Carbon to a depth of 1 meter, with a mean estimate of **`r signif(stock_country, 4)`** metric tonnes soil Carbon.
 
-```{r table1, echo=FALSE}
+# Need to find a work around, territory-level total stocks no longer exist in the app data 
+```
+
+
+```{r table1, echo=FALSE, warning=FALSE}
 
 totals <- allstocks %>% 
   mutate(Country = country,
          Territory = territory,
          Habitat = habitat,
-         `Total Stock` = signif(Total_Stocks, 3),
-         `Upper CI` = signif(Total_Stocks_UpperCI, 6),
-         `Lower CI` = signif(Total_Stocks_LowerCI, 6),
-         `Standard Error` = signif(Total_Stocks_se, 5)) %>% 
+         `Total Stock` = signif(Total_Stocks, 4),
+         `Upper CI` = signif(Total_Stocks_UpperCI, 4),
+         `Lower CI` = signif(Total_Stocks_LowerCI, 4),
+         `Standard Error` = signif(Total_Stocks_se, 4)) %>% 
   select(Territory, Country, Habitat, `Total Stock`, `Upper CI`, `Lower CI`,
          `Standard Error`)
 
-#if NA then 0?// no data available in global syntheses 
-totalstocks_mangrove[is.na(totalstocks_mangrove)] <- 0
-totalstocks_marsh[is.na(totalstocks_marsh)] <- 0
-totalstocks_seagrass[is.na(totalstocks_seagrass)] <- 0
+# #if NA then 0?// no data available in global syntheses 
+# totalstocks_mangrove[is.na(totalstocks_mangrove)] <- 0
+# totalstocks_marsh[is.na(totalstocks_marsh)] <- 0
+# totalstocks_seagrass[is.na(totalstocks_seagrass)] <- 0
 
-
-kable(totals, caption = "Total Geography Level Stocks")
+kable(totals, caption = "Total Territory Level Stocks")
 ```
 
 ### Mangrove Estimates
@@ -194,17 +190,17 @@ This total estimate includes country-level mangrove carbon stock estimates, with
 #evaluating the case of available mangrove area 
   if (!is.na(area_ha_mangrove))
      {show_text = TRUE
-  } else {show_text = FALSE}
+  } else {show_text2 = TRUE}
 
-  if (is.na(area_ha_mangrove))
-     {show_text2 = TRUE
-  } else {show_text2 = FALSE}
+  # if (is.na(area_ha_mangrove))
+  #    {show_text2 = TRUE
+  # } else {show_text2 = FALSE}
 
 ```
 
 ```{r mangroveeval, eval=show_text, echo=FALSE, results='asis'}
 
-cat("We estimate mangrove area in",chosen_geog, "to be", area_low_mangrove, "to", area_high_mangrove,"hectares with a mean estimate of", area_ha_mangrove,"hectares according to Global Mangrove Watch, Bunting et al 2018.")
+cat("We estimate mangrove area in",chosen_geog, "to be", signif(area_low_mangrove, 3), "to", signif(area_high_mangrove, 3),"hectares with a mean estimate of", signif(area_ha_mangrove, 3),"hectares according to Global Mangrove Watch, Bunting et al 2018.")
 ```
 
 ```{r mangroveeval2, eval=show_text2, echo=FALSE, results='asis'}
@@ -220,21 +216,21 @@ cat("We estimate mangrove area in", chosen_geog, "to be approximately 0 hectares
 
   if (!is.na(area_ha_marsh))
      {show_text = TRUE
-  } else {show_text = FALSE}
+  } else {show_text2 = TRUE}
 
-if (is.na(area_ha_marsh))
-     {show_text2 = TRUE
-  } else {show_text2 = FALSE}
+# if (is.na(area_ha_marsh))
+#      {show_text2 = TRUE
+#   } else {show_text2 = FALSE}
 
 ```
 
 ```{r marsheval, eval=show_text, echo=FALSE, results='asis'}
 
-area_marsh <- as.numeric(area_ha_marsh) %>% signif(4)
-area_low_marsh <- as.numeric(area_low_marsh) %>% signif(4)
-area_high_marsh <- as.numeric(area_high_marsh) %>% signif(4)
+area_marsh <- as.numeric(area_ha_marsh) %>% signif(3)
+area_low_marsh <- as.numeric(area_low_marsh) %>% signif(3)
+area_high_marsh <- as.numeric(area_high_marsh) %>% signif(3)
 
-cat("We estimate tidal marsh area in",chosen_geog, "to be", area_low_marsh, "to", area_high_marsh,"hectares with a mean estimate of", area_ha_marsh,"hectares according to Worthington et al 2024.") 
+cat("We estimate tidal marsh area in",chosen_geog, "to be", area_low_marsh, "to", area_high_marsh,"hectares with a mean estimate of", signif(area_ha_marsh, 3),"hectares according to Worthington et al 2024.") 
 ```
 
 ```{r marsheval2, eval=show_text2, echo=FALSE, results='asis'}
@@ -250,22 +246,22 @@ cat("We estimate tidal marsh area in", chosen_geog, "to be approximately 0 hecta
 
   if (!is.na(area_ha_seagrass))
      {show_text = TRUE
-  } else {show_text = FALSE}
+  } else {show_text2 = TRUE}
 
-if (is.na(area_ha_seagrass))
-     {show_text2 = TRUE
-  } else {show_text2 = FALSE}
+# if (is.na(area_ha_seagrass))
+#      {show_text2 = TRUE
+#   } else {show_text2 = FALSE}
 
 ```
 
 ```{r seagrasseval, eval=show_text, echo=FALSE, results='asis'}
 
-area_seagrass <- as.numeric(area_ha_seagrass) %>% signif(4)
+area_seagrass <- as.numeric(area_ha_seagrass) %>% signif(3)
 
 #seagrass_high_confidence <- 1 - 100
 #seagrass_low_confidence <- 1 - 100
 
-cat("We estimate seagrass area in",chosen_geog, "to have a mean estimate of", area_ha_seagrass,"hectares according to McKenzie et al 2020, which aggregates data from multiple sources.")
+cat("We estimate seagrass area in",chosen_geog, "to have a mean estimate of", signif(area_ha_seagrass, 3),"hectares according to McKenzie et al 2020, which aggregates data from multiple sources.")
 
 
 # cat("McKenzie et al 2020 classifies seagrass area estimates as either high or medium to low confidence. seagrass_high_confidence % of the estimated seagrass area of",chosen_geog, "is considered high to medium confidence, while seagrass_low_confidence % of the estimated seagrass area is categorized as low confidence.")

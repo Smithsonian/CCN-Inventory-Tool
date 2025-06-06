@@ -219,25 +219,62 @@ function(input, output, session) {
                                  # scrollX = 300,
                                  scrollCollapse = TRUE),
                   rownames = FALSE)
-  }) #%>% bindEvent(input$go)
+  }) 
     
   ## Report Download ---------------
   
   output$downloadReport <- downloadHandler(
     # name of exported file
     filename = function(){
-      paste0(input$chosen_geography, "_Inventory_Report_", Sys.Date(), ".pdf")
+      paste0(input$chosen_geography, "_Inventory_Report_", Sys.Date(), ".html")
     },
     # copy PDF file from the folder containing the pre-generated reports
     content = function(file) {
-      file.copy(paste0("www/reports/", input$chosen_geography, "_Detailed_Insights.pdf"), file)
+      file.copy(paste0("www/reports/", input$chosen_geography, "_Report.html"), file)
       
       # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
       # Potential add: option to download PDF or HTML version
     }
   )
   
+  
+  
+ ## Main Table Download ------------------
+  
+  output$downloadTable <- downloadHandler(
+    filename = function() {
+      paste0(input$chosen_geography, "_Stocks_Table_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      write.csv(DTOutput("tec"), file, row.names = FALSE)
+    }
+  )
+  
+
+
+
   ################################################
+  
+  
+## Create output to source html reports -----------------
+  
+  #shiny::addResourcePath()
+  
+  output$report <- renderUI({
+    req(input$chosen_geography) #require territory input
+
+    filename <- paste0("app/www/reports/", input$chosen_geography, "_Report.html")
+
+    tags$iframe(
+      seamless = "seamless",
+      src = filename,
+      height = 1000,
+      width = 1000
+    )
+  })
+
+  
+  
   
   ## Conditional Insight
   

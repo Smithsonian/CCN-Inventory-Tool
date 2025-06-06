@@ -160,19 +160,19 @@ main_table <- all_stocks_raw %>%
 # Questions: 
 # seagrass not included in total country stock calcs?
 # what are the units of Total_Stocks?
-# territory_tec <- all_stocks_raw %>%
-#   filter(habitat == "total") %>% # 1 total value per territory?
-#   select_if(~!all(is.na(.))) %>% 
-#   full_join(geokey) %>% 
-#   select(-habitat) %>% 
-#   select(continent, region, country, everything())
+territory_tec <- all_stocks_raw %>%
+  filter(habitat == "total") %>% # 1 total value per territory?
+  select_if(~!all(is.na(.))) %>%
+  full_join(geokey) %>%
+  select(-habitat) %>%
+  select(continent, region, country, everything())
 # idk if we'll use this table, but including it anyways
 
 ## ... Export App Data ####
 
 app_data <- list(
   main_table = main_table,
-  # territory_tec = territory_tec,
+  territory_tec = territory_tec,
   map_input = map_input,
   map_polys = map_polys
   )
@@ -188,3 +188,4 @@ app_data <- list(
 # export
 saveRDS(app_data, file = "app/data/app_data.rds")
 # rm(app_data) #removes from environment to run global script 
+
