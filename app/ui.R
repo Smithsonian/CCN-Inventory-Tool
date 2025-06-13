@@ -69,27 +69,32 @@ fluidPage(
                               column(
                                  # p("This section will contain information about the available data for the selected country."),
                                      
-                                     tabsetPanel(type = "tabs",
-                                                 tabPanel("Global Stocks", 
+                                     tabsetPanel(id = "inTabset",
+                                                 type = "tabs",
+                                                 tabPanel("Global Stocks", value = "globalpanel",
+                                                          # tags$b("Soil carbon stocks by country."),
+                                                          "Soil carbon stocks by country. Red line represents IPCC global value for the each habitat.",
                                                           radioButtons(inputId = "chosen_habitat",
                                                                        label = "Select a habitat", 
                                                                        choices = c("mangrove", "marsh", "seagrass"), 
                                                                        inline = T),
                                                           plotOutput("worldstockplot")),
-                                                 tabPanel("Data Status", plotlyOutput("datastatus")),
-                                                 tabPanel("Emissions Factors", plotlyOutput("efplot")),
-                                                 tabPanel("Activity Data", plotlyOutput("activityplot")),
+                                                 tabPanel("Country Stocks", value = "stockpanel", plotlyOutput("efplot")),
+                                                 tabPanel("Habitat Area", plotlyOutput("activityplot")),
+                                                 tabPanel("Data Availability", plotlyOutput("datastatus"))
+                                                 
                                      ),
                                      width = 6)
                             ),
                             
                             fluidRow(
                               tabsetPanel(type = "tabs",
-                                          tabPanel("Stocks Table", DTOutput("tec")),
+                                          tabPanel("Stocks Table", dataTableOutput("tec")),
                                           tabPanel("Download Report", 
                                                    tags$br(), 
                                                    
-                                                   tags$b("Insight about data available for selected territory. Please navigate to the `Reports` tab to view report in browser."),
+                                                   tags$b("Insight about data available for selected geography."),
+                                                   # Please navigate to the `Reports` tab to view report in browser.
                                                    
                                                    tags$br(), tags$br(), 
                                                    
@@ -97,12 +102,12 @@ fluidPage(
                                                    
                                                    downloadButton("downloadReport", 
                                                                   label = "Download Report", 
-                                                                  class = "btn-primary"),
-                                                   tags$br(), tags$br(),
-                                                   
-                                                   downloadButton("downloadTable",
-                                                                  label = "Download Stocks Table",
-                                                                  class = "btn-primary")), 
+                                                                  class = "btn-primary")),
+                                                   # tags$br(), tags$br(),
+                                                   # 
+                                                   # downloadButton("downloadTable",
+                                                   #                label = "Download Stocks Table",
+                                                   #                class = "btn-primary")), 
                                           #tabPanel("Detailed Insight", includeMarkdown("country_insights.md")), #this renders .md
                                           # tabPanel("TEC", p("TEC plot"))
                               ),
@@ -114,17 +119,17 @@ fluidPage(
              ),
              
              ################################################
+             # tabPanel(
+             #   "Report",
+             #   htmlOutput("report") #include report html as reports tab
+             # ),
              tabPanel(
                "About", 
                includeMarkdown("about.md")),
-             tabPanel(
-               "Methods",
-               includeMarkdown("methods.md")
-             ),
-             tabPanel(
-               "Reports",
-               htmlOutput("report") #include report html as reports tab 
-             ),
+             # tabPanel(
+             #   "Methods",
+             #   includeMarkdown("methods.md")
+             # ),
              # navbarMenu("More",
              #            tabPanel("Sub-Component A"),
              #            tabPanel("Sub-Component B")),

@@ -24,17 +24,29 @@ function(input, output, session) {
   
   r <- reactive(
     # which(map_input$country == input$chosen_country)
-    map_polys %>% filter(territory == input$chosen_geography)
+    map_polys %>% dplyr::filter(territory == input$chosen_geography)
   )
   
   geography_subset <- reactive({
-    main_table %>% filter(territory == input$chosen_geography)
+    
+    if(nchar(input$chosen_geography)==0){
+      stocktable <- main_table
+    } else {
+      stocktable <- main_table %>% dplyr::filter(territory == input$chosen_geography)
+    } 
+    return(stocktable)
   })
 
   dat <- reactive({
-    map_input %>% filter(territory == input$chosen_geography)
+    map_input %>% dplyr::filter(territory == input$chosen_geography)
   })
 
+  observeEvent(input$chosen_geography, {
+    if(nchar(input$chosen_geography)!=0){
+      updateTabsetPanel(session, "inTabset", selected = "stockpanel")
+    }
+  })
+  
   ## Map -------------------
 
   # Feature: Zoom options for globe or particular country
@@ -106,6 +118,7 @@ function(input, output, session) {
 
  })
  
+ 
  ## Data Status
  ## quantity, quality, representation 
  # use value boxes instead to express: # soil cores; # habitats represented; # plots surveyed
@@ -163,7 +176,7 @@ function(input, output, session) {
        xaxis = list(title = "Habitat Type"),
        yaxis = list(title = "Soil Carbon Stock (Mg/ha)"))
    
- }) #%>% bindEvent(input$go)
+ }) 
   
   ## Activity Data
   output$activityplot <- renderPlotly({
@@ -193,29 +206,34 @@ function(input, output, session) {
 
   ## Tables --------------
     
-  output$tec <- renderDT({
-    req(input$chosen_geography)
-    
+  output$tec <- renderDataTable({
+    # req(input$chosen_geography)
+ 
     # need to format the names of the table columns to be more user friendly
     DT::datatable(geography_subset() %>% 
-                    mutate(`Reporting Tier` = case_when(TierIorII == "Tier II" ~ "Country-specific value", 
+                    mutate(across(c(area_ha, compiled_EF, compiled_UpperCI, compiled_LowerCI, veg_TierII_mean, veg_TierII_se), 
+                                  ~round(.x, 2))) %>% 
+                    mutate(compiled_EF = case_when(!is.na(compiled_EF) ~ paste0(compiled_EF, " (+", 
+                                                                                compiled_UpperCI - compiled_EF, "/-", 
+                                                                                compiled_EF - compiled_LowerCI, ")"),
+                                                   T ~ NA_character_),
+                           veg_TierII_mean = case_when(!is.na(veg_TierII_mean) ~ paste0(veg_TierII_mean, " (+/-", 
+                                                                                        veg_TierII_se, ")"),
+                                                       T ~ NA_character_),
+                           `Reporting Tier` = case_when(TierIorII == "Tier II" ~ "Country-specific value", 
                                                         TierIorII == "Tier I" ~ "IPCC global value", T ~ TierIorII)) %>% 
-                    select(territory, habitat, area_ha, contains("compiled"), `CO2eq (TgC)`, 
-                           `Reporting Tier`, tier_II_overlaps_TierI) %>% 
-                    mutate(across(area_ha:compiled_LowerCI, ~round(.x, 2))) %>% 
-                    rename(`Country or Territory` = territory, 
+                    select(territory, habitat, area_ha, compiled_EF, veg_TierII_mean, `CO2 equivalent (Tg)`, `Reporting Tier`) %>% 
+                    rename(Geography = territory, 
                            Habitat = habitat, 
-                           `Reporting Insight` = tier_II_overlaps_TierI,
-                           `Mean Stock Upper CI (Mg/ha)` = compiled_UpperCI,
-                           `Mean Stock Lower CI (Mg/ha)` = compiled_LowerCI,
-                           `Mean Stock (Mg/ha)` = compiled_EF,
+                           `Mean Soil Stock (MgC/ha)` = compiled_EF,
+                           `Mean Biomass Stock (MgC/ha)` = veg_TierII_mean,
                            `Habitat Area (ha)` = area_ha),
                   
-                  caption = paste("Carbon stocks estimated for tidal wetland ecosystems in ", input$chosen_geography),
+                  caption = "Carbon stocks estimated for tidal wetland ecosystems.",
                   options = list(searching = FALSE,
                                  paging = FALSE,
                                  info = FALSE,
-                                 # scrollY = 300,
+                                 scrollY = 300,
                                  # scrollX = 300,
                                  scrollCollapse = TRUE),
                   rownames = FALSE)
@@ -238,20 +256,17 @@ function(input, output, session) {
   )
   
   
-  
  ## Main Table Download ------------------
   
-  output$downloadTable <- downloadHandler(
-    filename = function() {
-      paste0(input$chosen_geography, "_Stocks_Table_", Sys.Date(), ".csv")
-    },
-    content = function(file) {
-      write.csv(DTOutput("tec"), file, row.names = FALSE)
-    }
-  )
-  
-
-
+  # output$downloadTable <- downloadHandler(
+  #   filename = function() {
+  #     paste0(input$chosen_geography, "_Stocks_Table_", Sys.Date(), ".csv")
+  #   },
+  #   content = function(file) {
+  #     write.csv(stockplot(), file, row.names = FALSE)
+  #   }
+  # )
+  # 
 
   ################################################
   
@@ -260,40 +275,19 @@ function(input, output, session) {
   
   #shiny::addResourcePath()
   
-  output$report <- renderUI({
-    req(input$chosen_geography) #require territory input
-
-    filename <- paste0("app/www/reports/", input$chosen_geography, "_Report.html")
-
-    tags$iframe(
-      seamless = "seamless",
-      src = filename,
-      height = 1000,
-      width = 1000
-    )
-  })
-
-  
-  
-  
-  ## Conditional Insight
-  
-  # output$datainsight <- renderText({
-  #   
-  #   # Case: no in country data 
-  #   if(!input$chosen_country %in% unique(tier2data$country)){
-  #     "No data for this country."
-  #   } else{
-  #     paste("Congratulations, you have data for this country! There are", 
-  #           length(unique(geography_subset()$habitat)), "habitats represented.",
-  #           sep = " ",
-  #           "This tab includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass ecosystems.")
-  #   }
-  #   
-  # }) %>% bindEvent(input$go)
+  # output$report <- renderUI({
+  #   req(input$chosen_geography) #require territory input
   # 
-  
-  # Call modules
+  #   filename <- paste0("www/reports/", input$chosen_geography, "_Report.html")
+  # 
+  #   tags$iframe(
+  #     seamless = "seamless",
+  #     src = filename,
+  #     height = 1000,
+  #     width = 1000
+  #   )
+  # })
+
     
 }
  

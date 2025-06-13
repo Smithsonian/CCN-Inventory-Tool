@@ -19,7 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(knitr)
 library(sf)
-library(shinyBS)
+# library(shinyBS)
 
 # source utilities
 source("utils.R")
@@ -30,7 +30,7 @@ source("utils.R")
 app_data <- readRDS("data/app_data.rds")
 
 # Extract components from RDS
-main_table <- app_data$main_table
+main_table <- app_data$main_table %>% arrange(territory, habitat)
 map_input <- app_data$map_input
 map_polys <- app_data$map_polys
 

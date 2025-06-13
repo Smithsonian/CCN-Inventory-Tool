@@ -9,6 +9,9 @@ library(readr)
 library(tidyr)
 library(sf)
 
+# source utilities
+source("app/utils.R")
+
 ## Load Data ####
 
 core_stocks_raw <- read_csv("data/soilstocks_1m.csv") # need to update these tables when 1.5.0 is published?
@@ -40,10 +43,10 @@ core_terr_lookup <- read_csv("data/core_territory_lookup.csv")
   
 ## Utility Functions ####
 
-se <- function(x, na.rm=TRUE) {
-  if (na.rm) x <- na.omit(x)
-  sd(x)/sqrt(length(x))
-}
+# se <- function(x, na.rm=TRUE) {
+#   if (na.rm) x <- na.omit(x)
+#   sd(x)/sqrt(length(x))
+# }
 
 # create country list
 geokey <- all_stocks_raw %>% distinct(country, territory) %>% 
@@ -140,13 +143,24 @@ main_table <- all_stocks_raw %>%
   ## Mangrove IPCC Tier I Biomass EF: Total (511) - Soil (386) = Veg (125) Mg/Ha
   mutate(veg_TierI_Mean = case_when(habitat == "mangrove" ~ 125, T ~ NA),
          `habitat area (Ha)` = round(area_ha, 2),
-         `CO2eq (TgC)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2),
+         `CO2 equivalent (Tg)` = round(compiled_EF * area_ha * 3.67 / 10^6, 2),
          country = recode(country, "Federated States of Micronesia" = "Micronesia"),
          territory = recode(territory, "Federated States of Micronesia" = "Micronesia")) %>% 
   select_if(~!all(is.na(.))) %>% 
   filter(!is.na(area_ha) & area_ha != 0) %>% 
   # select(-c(contains("gtlt"), contains("overlaps"), "TierIorII", "text_position")) %>% 
   select(continent, region, country, territory, everything())
+
+
+# pre-render global figs
+globalStocks(main_table, "mangrove")
+ggsave("app/www/figures/global_mangrove_stocks.jpg", width = 6, height = 7)
+
+globalStocks(main_table, "marsh")
+ggsave("app/www/figures/global_marsh_stocks.jpg", width = 6, height = 6)
+
+globalStocks(main_table, "seagrass")
+ggsave("app/www/figures/global_seagrass_stocks.jpg", width = 6, height = 6)
 
 #   # upscale estimates using habitat area
 #   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
