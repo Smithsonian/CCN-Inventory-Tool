@@ -1,12 +1,13 @@
 ---
-title: "Detailed Insights: `r chosen_geog`"
+title: "Summary Report: `r chosen_geog`"
 output:
-  pdf_document:
+  html_document:
      toc: true
-bibliography: "`r here::here('app/www/reports', bib)`"
+     toc_float: true
+     theme: cerulean
+bibliography: "`r here::here('app/data/bibs', bib)`"
 engine: knitr
 ---
-
 ---
 nocite: '@*'
 ---
@@ -17,6 +18,8 @@ library(readr)
 library(knitr)
 library(kableExtra)
 library(leaflet)
+library(plotly)
+options(scipen = 999)
 
 ### This script writes the country insights pdf for the case of countries with AVAILABLE Tier II DATA 
 
@@ -28,8 +31,8 @@ selectGeography <- function(df){
 #country lookup table 
 country_lookup <- read_csv("country_lookup.csv")
 
-country <- country_lookup %>% 
-  filter(territory == chosen_geog) %>% 
+country <- country_lookup %>%
+  filter(territory == chosen_geog) %>%
   select(country)
 chosen_country <- as.character(country)
 
@@ -38,12 +41,11 @@ selectCountry <- function(df){
   df %>% filter(country == chosen_country)
 }
 
-
 #pull in curated app data, filtered to chosen territory 
 app_data <- readRDS("app_data.rds") 
 allstocks <- app_data$main_table %>% selectGeography()
 totalstocks <- app_data$territory_tec %>% selectGeography()
-map_input <- app_data$map_input #no territory listed 
+map_input <- app_data$map_input %>% selectGeography
 map <- app_data$map_polys %>% selectGeography()
 
 
@@ -54,19 +56,22 @@ rm(app_data) #keeps the rds out of the environment
 #Area totals for individual habitats 
 
 #mangrove values 
-area_ha_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha) 
-area_low_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha_lowerCI)
-area_high_mangrove <- allstocks %>% filter(habitat == "mangrove") %>% select(area_ha_upperCI)
+mangrove_area <- allstocks %>% filter(habitat == "mangrove")
+area_ha_mangrove <- signif(mangrove_area$area_ha, 4)
+area_low_mangrove <- signif(mangrove_area$area_ha_lowerCI, 4)
+area_high_mangrove <- signif(mangrove_area$area_ha_upperCI, 4)
 
 #marsh values
-area_ha_marsh <- allstocks %>% filter(habitat == "marsh") %>% select(area_ha)
-area_low_marsh <- allstocks %>%  filter(habitat == "marsh") %>% select(area_ha_lowerCI)
-area_high_marsh <- allstocks %>% filter(habitat == "marsh") %>% select(area_ha_upperCI)
+marsh_area <- allstocks %>% filter(habitat == "marsh")
+area_ha_marsh <- signif(marsh_area$area_ha, 4)
+area_low_marsh <- signif(marsh_area$area_ha_lowerCI, 4)
+area_high_marsh <- signif(marsh_area$area_ha_upperCI, 4)
+
 
 #seagrass values 
-area_ha_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha)
-area_low_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha_lowerCI)
-area_high_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(area_ha_upperCI)
+seagrass_area <- allstocks %>% filter(habitat == "seagrass")
+area_ha_seagrass <- signif(seagrass_area$area_ha, 4)
+#no CIs
 ```
 
 ```{r total stocks, echo=FALSE}
@@ -75,10 +80,10 @@ area_high_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(are
   #selectCountry()
 
 #total stocks// per total territory
-stock_country <- countrystock$Total_Stocks
-stock_country_low <- countrystock$Total_Stockers_LowerCI
-stock_country_high <- countrystock$Total_Stockers_UpperCI
-stock_country_se <- countrystock$Total_SE
+stock_country <- signif(countrystock$Total_Stocks, 4)
+stock_country_low <- signif(countrystock$Total_Stockers_LowerCI, 4)
+stock_country_high <- signif(countrystock$Total_Stockers_UpperCI, 4)
+stock_country_se <- signif(countrystock$Total_SE, 4)
 
 #total stocks per habitat per territory 
 #this is now taken from different table 
@@ -87,19 +92,20 @@ marsh_stocks <- allstocks %>% filter(habitat == "marsh")
 seagrass_stocks <- allstocks %>% filter(habitat == "seagrass")
 
 #mangrove
-totalstocks_mangrove <- mangrove_stocks$Total_Stocks
-totalstocks_mangrove_upper <- mangrove_stocks$area_ha_upperCI
-totalstocks_mangrove_lower <- mangrove_stocks$area_ha_lowerCI
+totalstocks_mangrove <- signif(mangrove_stocks$Total_Stocks, 4)
+totalstocks_mangrove_upper <- signif(mangrove_stocks$area_ha_upperCI, 4)
+totalstocks_mangrove_lower <- signif(mangrove_stocks$area_ha_lowerCI, 4)
   
 #marsh
-totalstocks_marsh <- marsh_stocks$Total_Stocks
-totalstocks_marsh_upper <- marsh_stocks$area_ha_upperCI
-totalstocks_marsh_lower <- marsh_stocks$Total_Stocks_LowerCI
-  
+totalstocks_marsh <- signif(marsh_stocks$Total_Stocks, 4)
+totalstocks_marsh_upper <- signif(marsh_stocks$area_ha_upperCI, 4)
+totalstocks_marsh_lower <- signif(marsh_stocks$Total_Stocks_LowerCI, 4)
+
+
 #seagrass 
-totalstocks_seagrass <- seagrass_stocks$Total_Stocks
-totalstocks_seagrass_upper <- seagrass_stocks$area_ha_upperCI
-totalstocks_seagrass_lower <- seagrass_stocks$Total_Stocks_LowerCI
+totalstocks_seagrass <- signif(seagrass_stocks$Total_Stocks, 4)
+totalstocks_seagrass_upper <- signif(seagrass_stocks$area_ha_upperCI, 4)
+totalstocks_seagrass_lower <- signif(seagrass_stocks$Total_Stocks_LowerCI, 4)
 
 ```
 
@@ -109,13 +115,18 @@ You have reached the CCN Inventory Tool Detailed Insights Report.
 
 Congratulations! This geography has available data.
 
-Potential data availability within the Inventory Tool ranges from Tier I, Tier II, or Tier III Carbon stock estimates.
+Potential data availability within the Inventory Tool ranges from Tier I, Tier II, or Tier III Carbon stock estimates. 
+
+   - Tier I: Global sediment carbon stock estimates.
+
+   - Tier II: Country- or territory-level sediment carbon stock estimates.
+
+   - Tier III: Modeled country- or territory-level sediment carbon stock estimates. 
+
 
 This document includes country-specific insights and more detailed analysis, including carbon stocks, emissions factors, and ecosystem wetland area for mangrove, marsh, and seagrass habitats. This report details information for the selected geography, **`r chosen_geog`**.
 
 Explore the rest of the dashboard for more exciting visualizations, map features and data.
-
-Resources referenced to calculate estimates for **`r chosen_geog`** are listed below under 'References' at the end of this document.
 
 If you have any questions or data you would like to add to the Coastal Carbon Network, please reach out to us at [CoastalCarbon\@si.edu](mailto:CoastalCarbon@si.edu){.email}.
 
@@ -146,12 +157,13 @@ This map represents the area of **`r chosen_geog`** and the locations of both so
 
 ## Total Carbon Stock Estimates
 
-Total Carbon stock estimates were calculated for each geography in total, and for mangrove, tidal marsh, and seagrass habitats when available.
+Total Carbon stock estimates were calculated for each geography in total, and for mangrove, tidal marsh, and seagrass habitats, when available.
 
-We estimate that **`r chosen_geog`** contains a mean estimate of `r signif(stock_country, 4)` metric tonnes soil Carbon.
+We estimate that **`r chosen_geog`** contains a mean estimate of `r stock_country` megagrams per hectare sediment carbon stock. 
 
-We estimate that **`r chosen_geog`** contains between `r signif(stock_country_low, 4)` to `r signif(stock_country_high, 4)` metric tonnes of soil C to a depth of 1 m, with a mean estimate of N metric tonnes C.
+We estimate that **`r chosen_geog`** contains between `r stock_country_low` to `r stock_country_high` megagrams per hectare sediment carbon to a depth of 1 m, with a mean estimate of `r stock_country` megagrams per hectare.
 
+### Total Territory-Level Stocks
 ```{r table1 territory total, echo=FALSE}
 
 totals <- totalstocks %>%
@@ -166,19 +178,30 @@ totals <- totalstocks %>%
 kable(totals, caption = "Total Geography Level Carbon Stocks")
 ```
 
-This total estimate includes total mangrove soil carbon stocks,with a mean estimate of `r signif(totalstocks_mangrove, 4)` metric tonnes of soil C to a depth of 1 meter.
-
 ```{r, echo=FALSE, warning=FALSE, message=FALSE} 
-#decide if mangrove data 
-
-  if (!is.na(totalstocks_mangrove))
-     {show_text = TRUE
-  } else {show_text = FALSE}
-#only print table if mangrove total stock is present 
+# #decide if mangrove data 
+# #errors with zeros, evaluate if area is greater than numeric zero 
+# mangrove_data_eval <- isTRUE(totalstocks_mangrove > 0)
+# 
+# #evaluating the case of available mangrove area 
+#   if (isTRUE(mangrove_data_eval))
+#      {show_textmangrove = TRUE
+#   } else {show_textmangrove = FALSE}
+# 
+#   if (mangrove_data_eval == FALSE)
+#      {show_text2mangrove = TRUE
+#   } else {show_text2mangrove = FALSE}
 
 ```
 
-```{r table2 mangrove, eval=show_text, echo=FALSE, results='asis'}
+### Total Mangrove Stocks 
+```{r table2 mangrove, echo=FALSE}
+totalstocks_mangrove <- signif(totalstocks_mangrove, 4)
+
+
+# cat("This total estimate includes total mangrove soil carbon stocks, with a mean estimate of", totalstocks_mangrove, "megagrams per hectare soil carbon to a depth of 1 meter.")
+
+
 mangrove_totals <- allstocks %>% filter(habitat == "mangrove") %>% 
      mutate(Country = country,
             Territory = territory,
@@ -194,20 +217,36 @@ mangrove_totals <- allstocks %>% filter(habitat == "mangrove") %>%
 kable(mangrove_totals)
 ```
 
-This total estimate also includes total tidal marsh carbon stocks, ranging from `r signif(totalstocks_marsh_lower, 4)` to `r signif(totalstocks_marsh_upper, 4)` metric tonnes of soil C to a depth of 1 m, with a mean estimate of `r signif(totalstocks_marsh, 4)`
+This total estimate includes total mangrove soil carbon stocks, with a mean estimate of `r totalstocks_mangrove` megagrams per hectare soil carbon to a depth of 1 meter.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE} 
 #decide if marsh data 
 
-  if (!is.na(totalstocks_marsh))
-     {show_text = TRUE
-  } else {show_text = FALSE}
-#only print table if mangrove total stock is present 
+#decide if mangrove data, only print data if stocks are present 
+#errors with zeros, evaluate if area is greater than numeric zero 
+marsh_data_eval <- isTRUE(totalstocks_marsh > 0)
+
+#evaluating the case of available mangrove area 
+  if (isTRUE(marsh_data_eval))
+     {show_textmarsh = TRUE
+  } else {show_textmarsh = FALSE}
+
+  if (marsh_data_eval == FALSE)
+     {show_text2marsh = TRUE
+  } else {show_text2marsh = FALSE}
+
 
 ```
 
+### Total Marsh Stocks 
+```{r table3 marsh, eval=show_textmarsh, echo=FALSE, results='asis'}
 
-```{r table3 marsh, eval=show_text, echo=FALSE, results='asis'}
+totalstocks_marsh_lower <- signif(totalstocks_marsh_lower, 4)
+totalstocks_marsh_upper <- signif(totalstocks_marsh_upper, 4)
+totalstocks_marsh <- signif(totalstocks_marsh, 4)
+
+# cat("This total estimate also includes total tidal marsh carbon stocks, ranging from", totalstocks_marsh_lower, "to", totalstocks_marsh_upper,", with a mean estimate of",totalstocks_marsh,"megagrams per hectare.")
+
 
 marsh_totals <- allstocks %>% filter(habitat == "marsh") %>% 
      mutate(Country = country,
@@ -224,19 +263,34 @@ marsh_totals <- allstocks %>% filter(habitat == "marsh") %>%
 kable(marsh_totals)
 ```
 
-We estimate seagrass soil carbon stocks for **`r chosen_geog`** to have a mean estimate of `r signif(totalstocks_seagrass, 4)`
+This total estimate also includes total tidal marsh carbon stocks, with a mean estimate of `r totalstocks_marsh` megagrams per hectare soil carbon to a depth of 1 meter.
+
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE} 
-#decide if seagrass data 
-
-  if (!is.na(totalstocks_seagrass))
-     {show_text = TRUE
-  } else {show_text = FALSE}
-#only print table if mangrove total stock is present 
+# #decide if seagrass data 
+# 
+# #only print table if stocks are present 
+# #errors with zeros, evaluate if area is greater than numeric zero 
+# seagrass_data_eval <- isTRUE(totalstocks_seagrass > 0)
+# 
+# #evaluating the case of available mangrove area 
+#   if (isTRUE(seagrass_data_eval))
+#      {show_textseagrass = TRUE
+#   } else {show_textseagrass = FALSE}
+# 
+#   if (seagrass_data_eval == FALSE)
+#      {show_text2seagrass = TRUE
+#   } else {show_text2seagrass = FALSE}
 
 ```
 
+### Total Seagrass Stocks
 ```{r table4 seagrass, echo=FALSE}
+
+totalstocks_seagrass <- signif(totalstocks_seagrass, 4)
+
+# cat("We estimate seagrass soil carbon stocks for", chosen_geog, "to have a mean estimate of", totalstocks_seagrass, "megagrams per hectare sediment carbon stock.")
+
 
 seagrass_totals <- allstocks %>% filter(habitat == "seagrass") %>%
      mutate(Territory = territory,
@@ -251,13 +305,15 @@ seagrass_totals <- allstocks %>% filter(habitat == "seagrass") %>%
 kable(seagrass_totals)
 ```
 
+This estimate also includes seagrass soil carbon stocks for `r chosen_geog` which we estimate to have a mean of `r totalstocks_seagrass` megagrams per hectare sediment carbon stock.
+
 ## Wetland Areas and Activities
 
-We estimate mangrove area in **`r chosen_geog`** to be `r signif(area_low_mangrove, 4)` to `r signif(area_high_mangrove, 4)` hectares, with a mean estimate of `r signif(area_ha_mangrove, 4)` hectares according to Global Mangrove Watch @Bunting_et_al_2018.
+We estimate mangrove area in **`r chosen_geog`** to be `r area_low_mangrove` to `r area_high_mangrove` hectares, with a mean estimate of `r area_ha_mangrove` hectares according to Global Mangrove Watch, @Bunting_et_al_2018.
 
-We estimate tidal marsh area in **`r chosen_geog`** to be `r signif(area_low_marsh, 4)` to `r signif(area_high_marsh, 4)` hectares, with a mean estimate of hectares according to @Worthington_et_al_2024.
+We estimate tidal marsh area in **`r chosen_geog`** to be `r area_low_marsh` to `r area_high_marsh` hectares, with a mean estimate of     `r area_ha_marsh` according to @Worthington_et_al_2024.
 
-We estimate seagrass area to be **`r chosen_geog`** to be a mean of `r signif(area_ha_seagrass, 4)` hectares, according to @McKenzie_et_al_2020, which aggregates global seagrass data from a number of sources.
+We estimate seagrass area to be **`r chosen_geog`** to be a mean of `r area_ha_seagrass` hectares, according to @McKenzie_et_al_2020, which aggregates global seagrass data from a number of sources.
 
 <!-- @McKenzie_et_al_2020 classifies seagrass area estimates as either high or medium-to-low confidence. seagrass_area_high_confidence % of the estimated seagrass area of **`r chosen_geog`** is considered high to medium confidence, while seagrass_area_low_confidence % of the estimated seagrass area is categorized as low confidence. -->
 
@@ -265,10 +321,6 @@ We estimate seagrass area to be **`r chosen_geog`** to be a mean of `r signif(ar
 
 ```{r N_cores, echo = FALSE}
 #cores, sites, habitats for soil cores included in tier II calcs 
-#get country 
-geographies_list <- allstocks %>% select(country, territory) %>% distinct()
-chosen_country <- geographies_list$country
-
 cores <- chosen_map_input %>% filter(carbon_pool == "soil") %>% count() 
 veg_samples <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% count()
 sites <- chosen_map_input %>% filter(carbon_pool == "soil") %>% select(site_id) %>% distinct() %>% count()
@@ -280,16 +332,40 @@ habitat.list <- selectCountry(map_input) %>% filter(carbon_pool == "soil") %>% s
 veg.habitat.list <- selectCountry(map_input) %>% filter(carbon_pool == "vegetation") %>% select(habitat) %>% distinct()
 habitat.list <- as.character(habitat.list)
 veg.habitat.list <- as.character(veg.habitat.list)
+
+
+## veg data present? 
+#veg_data_present <- if_else("vegetation" %in% chosen_map_input$carbon_pool, "also contains", "does not contain")
+
+
 ```
 
 This section of the report details whether data is available to estimate Tier I, Tier II, or Tier III value estimates for tidal marsh, mangrove, and seagrass ecosystems in **`r chosen_geog`**.
 
 If data for the selected country is available in the Coastal Carbon Atlas, we have applied a Tier II emission factor based on a simple average of country specific data queried from the Atlas.
 
-Soil core data from **`r chosen_geog`** included in the Coastal Carbon Atlas consists of `r cores` soil profiles from `r sites` sites. This data comes from `r habitats` distinct habitat type(s).
+Within the Coastal Carbon Atlas, data from the selected geography, `r chosen_geog`, includes soil samples and vegetation samples.
 
-Vegetation data from **`r chosen_geog`** included in the Coastal Carbon Atlas consists of `r veg_samples` from `r veg_sites`. The vegetation data from `r chosen_geog` is sourced from `r veg_habitat`, `r veg.habitat.list`
+Soil core data from **`r chosen_geog`** included in the Coastal Carbon Atlas consists of `r cores` soil profiles from `r sites` sites. This data comes from `r habitats` distinct habitat type(s). At present, there are `r veg_samples` vegetation samples. 
 
+
+```{r if veg data, echo=FALSE}
+
+# veg_data_present
+# #if vegetation data 
+#  if (veg_data_present == "also contains")
+#      {show_text = TRUE
+#   } else {show_text = FALSE}
+
+```
+
+```{r veg data,  echo=FALSE, results='asis'}
+
+# cat("Vegetation data included in the Coastal Carbon Atlas consists of", veg_samples, "samples from", veg_sites, "unique sites.")
+# 
+# cat("This data has been sourced from", veg_habitat, "which includes", veg.habitat.list)
+
+```
 
 In the case that there is not yet any country specific information in the Coastal Carbon Atlas, we instead applied IPCC Tier I estimate, which are estimated global values. IPCC Global estimates for mangrove, marsh, and seagrass ecosystems are listed below.
 
@@ -302,7 +378,7 @@ IPCC_tier_I <- as_tibble(data.frame(Habitat = c("mangrove", "marsh", "seagrass")
                                       `Lower_CI` = c(351,254,84),
                                       `Upper_CI` = c(424,297,139)))
 
-kable(IPCC_tier_I, caption = "IPCC Global Value Estimates")
+kable(IPCC_tier_I, caption = "IPCC Global Value Estimates (Mg per hectare)")
 ```
 
 ## Data Availiability by Tier - Reporting Insight
@@ -320,8 +396,13 @@ tiertable <- allstocks %>% select(country, territory, habitat, TierIorII, tier_I
          Habitat = habitat,
          Tier = TierIorII,
          `Reporting Insight` = tier_II_overlaps_TierI) %>% 
-  mutate(`Reporting Insight` = if_else(is.na(`Reporting Insight`), 
-        "No Tier II data available at this time", `Reporting Insight`),
+  mutate(`Reporting Insight` = case_when(is.na(`Reporting Insight`) ~ "No Tier II data available at this time",
+                                         grepl("overlap", `Reporting Insight`) ~ "Territory-level average overlaps global value",
+                                         grepl("significantly less", `Reporting Insight`) ~ 
+                                           "Territory-level average is significantly less than global value",
+                                         grepl("significantly greater", `Reporting Insight`) ~ 
+                                           "Territory-level average is significantly greater than global value",
+                                         TRUE ~ `Reporting Insight`),
         Tier = if_else(Tier == "Tier II", "Territory-Level", "Global"))
 
 kable(tiertable, caption = "Availiability of Territory-Level Data")
@@ -330,7 +411,7 @@ kable(tiertable, caption = "Availiability of Territory-Level Data")
 
 ### Tier I Carbon Stocks - Global Estimates 
 
-This section includes estimated global sediment carbon stocks included for **`r chosen_geog`**. In the case that all habitats; mangrove, tidal marsh, and seagrass have availiable territory-level estimates, please refer to Table 2: IPCC Tier I Value Estimates for applicable global values.
+This section includes estimated global sediment carbon stocks included for **`r chosen_geog`**. In the case that any habitats; mangrove, tidal marsh, or seagrass do not have availiable territory-level estimates, please refer to Table 2: IPCC Tier I Value Estimates for applicable global values.
 
 ```{r data setup, echo=FALSE}
 tier1data <- allstocks %>% filter(TierIorII == "Tier I")
@@ -345,23 +426,23 @@ tier2data <- allstocks %>% filter(TierIorII == "Tier II")
 ```
 
 ```{r tier1eval, eval=show_text, echo=FALSE}
-#tier 1 is always == IPCC global values 
-
-#tibble of habitats in territory 
-habitats <- allstocks %>% 
-  select(territory, habitat) %>% 
-  rename(Territory = territory,
-         Habitat = habitat) %>% distinct()
-
-
-#if no Tier I data listed, use IPCC estimates 
-tier1stocks <- IPCC_tier_I %>% 
-  mutate(Territory = chosen_geog) %>% 
-  left_join(habitats) %>% 
-  select(Territory, everything())
-
-
-kable(tier1stocks, caption = "Tier I: Global Carbon Stock Estimates")
+# #tier 1 is always == IPCC global values 
+# 
+# #tibble of habitats in territory 
+# habitats <- allstocks %>% 
+#   select(territory, habitat) %>% 
+#   rename(Territory = territory,
+#          Habitat = habitat) %>% distinct()
+# 
+# 
+# #if no Tier I data listed, use IPCC estimates 
+# tier1stocks <- IPCC_tier_I %>% 
+#   mutate(Territory = chosen_geog) %>% 
+#   left_join(habitats) %>% 
+#   select(Territory, everything())
+# 
+# 
+# kable(tier1stocks, caption = "Tier I: Global Carbon Stock Estimates")
 ```
 
 ```{r tier1eval2, eval=show_text, echo=FALSE, results='asis'}
@@ -372,7 +453,7 @@ cat("Good news! The selected country has territory-level data for each available
 
 This table includes country or territory level sediment carbon stock estimates for **`r chosen_geog`**. Estimates in this table were derived from available soil core data queried from the Coastal Carbon Atlas.
 
-A selected country may have available territory-level values for one or multiple habitats, this is dependent on core data accessible through the Coastal Carbon Atlas. If a territory has habitat area, but that respective habitat type does not have an associated territory-level stock estimate, there is insufficient core data in the Coastal Carbon Atlas to estimate sediment carbon stock. At the time of analysis, referencing Version 1.5.0 of the Coastal Carbon Atlas and Data Library, **`r chosen_geog`** is represented by a total of `r cores` cores across `r habitats` distinct habitats.
+A selected country may have available territory-level values for one or multiple habitats, this is dependent on core data accessible through the Coastal Carbon Atlas. If a territory has habitat area, but that respective habitat type does not have an associated territory-level stock estimate, there is insufficient core data in the Coastal Carbon Atlas to estimate sediment carbon stock. At the time of analysis, referencing Version 1.5.0 of the Coastal Carbon Atlas and Data Library, **`r chosen_geog`** is represented by a total of `r cores` cores across `r habitats` distinct habitat(s).
 
 ```{r setuptier2_false, echo=FALSE, warning=FALSE, message=FALSE}
   if ("Tier II" %in% tiertable$Tier)
@@ -393,7 +474,8 @@ tier2stocks <- tier2data %>%
         `Standard Error` = soil_TierII_se) %>%
   mutate(`Mean Stock (MgHa)` = signif(`Mean Stock (MgHa)`, 3),
          `Lower CI` = signif(`Lower CI`, 3),
-         `Upper CI` = signif(`Upper CI`, 3)) %>% 
+         `Upper CI` = signif(`Upper CI`, 3),
+         `Standard Error` = signif(`Standard Error`, 3)) %>% 
   #janitor::remove_empty(which = "cols") %>% #removing any habitats without tier II data 
   dplyr::select(Country, Territory, Habitat, `Mean Stock (MgHa)`, `Lower CI`, `Upper CI`, `Standard Error`)
 
@@ -419,11 +501,20 @@ tier3data <- allstocks %>% filter(!is.na(soil_TierIII_mean))
 ```{r tier overlap, echo=FALSE}
 #tier 3 overlap with 1 and 2
 
+marshtier3 <- tier3data %>% filter(habitat == "marsh")
+mangrovetier3 <- tier3data %>% filter(habitat == "mangrove")
+
 #create variabletier3data#create variables to use in inline code
-tierIII_gtlt_tier_II <- tier3data %>% select(tierIII_gtlt_tier_II)
-tierII_overlaps_tierIII <- tier3data %>% select(tierII_overlaps_tierIII)  
-tierIII_gtlt_tier_I <- tier3data %>% select(tierIII_gtlt_tier_I)
-tierIII_overlaps_tierI <- tier3data %>% select(tierIII_overlaps_tierI)
+tierIII_gtlt_tier_II_mangrove <- mangrovetier3 %>%  select(tierIII_gtlt_tier_II) 
+tierII_overlaps_tierIII_mangrove <- mangrovetier3 %>% select(tierII_overlaps_tierIII)  
+tierIII_gtlt_tier_I_mangrove <- mangrovetier3 %>% select(tierIII_gtlt_tier_I)
+tierIII_overlaps_tierI_mangrove <- mangrovetier3 %>% select(tierIII_overlaps_tierI)
+
+tierIII_gtlt_tier_II_marsh <- marshtier3 %>% select(tierIII_gtlt_tier_II)
+tierII_overlaps_tierIII_marsh <- marshtier3 %>% select(tierII_overlaps_tierIII)  
+tierIII_gtlt_tier_I_marsh <- marshtier3 %>% select(tierIII_gtlt_tier_I)
+tierIII_overlaps_tierI_marsh <- marshtier3 %>% select(tierIII_overlaps_tierI)
+
 ```
 
 ```{r conditional_block1, eval=show_text, echo=FALSE, results='asis'}
@@ -443,35 +534,38 @@ tier3stocks <- tier3data %>%
  kable(tier3stocks, caption = "Tier III: Modeled Carbon Stock Estimates") 
 
 #create variables to use in inline code
-text1 <- tier3data %>% select(tierIII_gtlt_tier_II)
-text2 <- tier3data %>% select(tierII_overlaps_tierIII)
-text3  <- tier3data %>% select(tierIII_gtlt_tier_I)
-text4 <- tier3data %>% select(tierIII_overlaps_tierI)
- 
-cat("In the selected geography, modeled estimated stock MgHa values are", text1, "territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled", text2)
+text1marsh <- tierIII_gtlt_tier_II_marsh
+text2marsh <- tierII_overlaps_tierIII_marsh
+text3marsh  <- tierIII_gtlt_tier_I_marsh
+text4marsh <- tierIII_overlaps_tierI_marsh
 
-cat(". Additionally, estimated modeled stock values derived from remote sensing are", text3, "estimates global IPCC values. In this case, the modeled", text4, "estimate.")
+text1mangrove <- tierIII_gtlt_tier_II_mangrove
+text2mangrove <- tierII_overlaps_tierIII_mangrove
+text3mangrove  <- tierIII_gtlt_tier_I_mangrove
+text4mangrove <- tierIII_overlaps_tierI_mangrove
 
-
-#need to do this for each habitat 
-
-#mangrove 
-#text1mangrove <- text()
-
+# In the selected geography, modeled estimated stock MgHa values for marsh habitats are, `r text1marsh` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2marsh`. Additionally, estimated modeled stock values derived from remote sensing are `r text3marsh` estimates global IPCC values. In this case, the modeled `r text4marsh` global estimates.
+# 
+# In mangrove habitats, modeled estimated stock MgHa values are, `r text1mangrove` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2mangrove`. Additionally, estimated modeled stock values derived from remote sensing are `r text3mangrove` estimates global IPCC values. In this case, the modeled `r text4mangrove` global estimates.
+# 
 
 ```
 
+In mangrove habitats, modeled estimated stock MgHa values are, `r text1mangrove` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2mangrove`. Additionally, estimated modeled stock values derived from remote sensing are `r text3mangrove` estimates global IPCC values. In this case, the modeled `r text4mangrove` global estimates.
+
+
+
 ```{r tier3setup2, echo=FALSE, warning=FALSE, message=FALSE}
 #this chunk sets up the condition that there is NO tier 3 data 
-  if (!chosen_geog %in% tier3data$country)
-     {show_text = TRUE
-     } else {show_text = FALSE}
+  # if (!chosen_geog %in% tier3data$country)
+  #    {show_text = TRUE
+  #    } else {show_text = FALSE}
 
 ```
 
 ```{r conditional_block2, eval=show_text, echo=FALSE}
 #this text prints if there is no available tier III data 
-cat("There is currently no available modeled sediment carbon stock estimates for mangrove or marsh habitats in", chosen_geog)
+# cat("There is currently no available modeled sediment carbon stock estimates for mangrove or marsh habitats in", chosen_geog)
 ```
 
 ```{r Tier3 Overlap, echo=FALSE}
@@ -486,17 +580,13 @@ cat("There is currently no available modeled sediment carbon stock estimates for
 ## Visualizations 
 
 ### 1. Data Metrics 
-```{r data metrics, echo=FALSE}
-map_input %>% filter(country == chosen_country) %>% 
-  dplyr::count(carbon_pool, habitat, country) %>% 
-  
-  ggplot2::ggplot() + 
-  geom_col(aes(habitat, n, fill = carbon_pool)) +
-  # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
-  coord_flip() +
-  ylab("Number of Samples") + theme_bw(base_size = 20) +
-  theme(legend.position = "bottom")
-
+```{r data metrics, echo=FALSE, warning=FALSE}
+map_input %>% 
+     dplyr::count(carbon_pool, habitat, territory) %>% 
+     plot_ly(x = ~habitat, y = ~n, type = "bar",
+             color = ~carbon_pool) %>% 
+     layout(xaxis = list(title = "Habitat Type"),
+            yaxis = list(title = "Number of Samples"))
 ```
 
 ### 2. Emissions Factors 
@@ -517,13 +607,13 @@ allstocks %>%
   facet_wrap(~`carbon_pool`, 
              # scales = "free", 
              dir = "v")+
-  labs(title = "Emissions Factors: ADD TERRITORY")
+  labs(title = "Emissions Factors: Palau")
   
 
 ```
 
 ### 3. Activity Data 
-```{r, echo=FALSE, warning=FALSE}
+```{r, echo=FALSE, warning=FALSE, results='hide', fig.keep='all'}
 
 allstocks %>% 
   ggplot2::ggplot() + 
@@ -535,55 +625,52 @@ allstocks %>%
   theme(legend.position = "bottom")
 ```
 
-
-## Methods 
 ```{r, echo=FALSE, results='asis'}
 
-cat(
-"## Materials and Methodology 
-
-This page details the data sources and methodology used to develop and estimate habitat areas and sediment carbon stocks, including data sources and term definitions. 
-
-### Disclaimer
-
-Country and territory names used in this map and dashboard have been aligned with current ESRI guidelines.The boundaries and names shown and the designations used on this map do not imply the expression of any opinion whatsoever on the part of the Coastal Carbon Network or the Smithsonian Institution concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. 
-
-### Data Sources 
-
-Multiple data sources were compiled in order to synthesize data for this tool. Worthington et al 2021 was used to estimate salt marsh area data, Bunting et al 2018 was used to estimate mangrove area data, and McKenzie et al 2021 was used to estimate seagrass area data, when available. Soil and vegetation data available in the Coastal Carbon Atlas, hosted by the Coastal Carbon Network, was used to estimate mean country-level sediment carbon stocks. This data was filtered to exclude cores shorter than 1 meter, in order to align with IPCC global carbon stock value standards. 
-
-Modeled carbon stock values, estimated Tier III sediment carbon stocks, were estimated from Maxwell et al 2021 and Sanderman et al 2018 for all applicable territories. These estimated values were derived from remote sensing data present in these two syntheses, Maxwell et al 2021 for mangrove habitats, and Sanderman et al 2018 for tidal salt marsh habitats. 
-
-When neither Tier II or Tier III values were available for a habitat in a geographic territory, the global IPCC sediment carbon stock value for that habitat is applied. 
-
-### Mapping 
-
-The interactive map featured in this tool was created using the leaflet package in R. OSM (default) and CartoDB provider tiles were used to create a global background layer. 
-
-EEZ data source and Countries data source.
-Spatial interpolation of unmonitored territories/watersheds. 
-
-### Estimating Sediment Carbon Stocks
-
-To estimate territory-level sediment carbon stocks, data from the Coastal Carbon Atlas and Data Library was used. 
-
-### Definitions: Total Stocks 
-
-Habitat Area (ha) : In hectares, area of specified habitat in selected territory.
-
-Mean Stock (Mg/ha) : Mean soil carbon stock value in milligrams per hectare
-
-Mean Stock Upper CI (Mg/ha) : Upper confidence interval for mean soil carbon stock value
-
-Mean Stock Lower CI (Mg/ha): Lower confidence interval for mean soil carbon stock value 
-
-CO2eq (TgC): (column name will be changed?) 
-
-Reporting Tier: Level of reporting resolution for carbon stocks. Tiers listed include IPCC global values, country-level stock calculations, and modeled values. Tier I stocks correspond to IPCC global values, Tier II stocks correspond to country-level stock calculations, Tier III stocks correspond to modeled values. The reporting tier listed is the highest available resolution for a given territory and habitat. 
-
-Reporting Insight: Specifies whether country-specific or modeled carbon stock averages overlap with IPCC global values")
+#cat(
+# "## Materials and Methodology 
+# 
+# This page details the data sources and methodology used to develop and estimate habitat areas and sediment carbon stocks, including data sources and term definitions. 
+# 
+# ### Disclaimer
+# 
+# Country and territory names used in this map and dashboard have been aligned with current ESRI guidelines.The boundaries and names shown and the designations used on this map do not imply the expression of any opinion whatsoever on the part of the Coastal Carbon Network or the Smithsonian Institution concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. 
+# 
+# ### Data Sources 
+# 
+# Multiple data sources were compiled in order to synthesize data for this tool. Worthington et al 2021 was used to estimate salt marsh area data, Bunting et al 2018 was used to estimate mangrove area data, and McKenzie et al 2021 was used to estimate seagrass area data, when available. Soil and vegetation data available in the Coastal Carbon Atlas, hosted by the Coastal Carbon Network, was used to estimate mean country-level sediment carbon stocks. This data was filtered to exclude cores shorter than 1 meter, in order to align with IPCC global carbon stock value standards. 
+# 
+# Modeled carbon stock values, estimated Tier III sediment carbon stocks, were estimated from Maxwell et al 2021 and Sanderman et al 2018 for all applicable territories. These estimated values were derived from remote sensing data present in these two syntheses, Maxwell et al 2021 for mangrove habitats, and Sanderman et al 2018 for tidal salt marsh habitats. 
+# 
+# When neither Tier II or Tier III values were available for a habitat in a geographic territory, the global IPCC sediment carbon stock value for that habitat is applied. 
+# 
+# ### Mapping 
+# 
+# The interactive map featured in this tool was created using the leaflet package in R. OSM (default) and CartoDB provider tiles were used to create a global background layer. 
+# 
+# EEZ data source and Countries data source.
+# Spatial interpolation of unmonitored territories/watersheds. 
+# 
+# ### Estimating Sediment Carbon Stocks
+# 
+# To estimate territory-level sediment carbon stocks, data from the Coastal Carbon Atlas and Data Library was used. 
+# 
+# ### Definitions: Total Stocks 
+# 
+# Habitat Area (ha) : In hectares, area of specified habitat in selected territory.
+# 
+# Mean Stock (Mg/ha) : Mean soil carbon stock value in milligrams per hectare
+# 
+# Mean Stock Upper CI (Mg/ha) : Upper confidence interval for mean soil carbon stock value
+# 
+# Mean Stock Lower CI (Mg/ha): Lower confidence interval for mean soil carbon stock value 
+# 
+# CO2eq (TgC): (column name will be changed?) 
+# 
+# Reporting Tier: Level of reporting resolution for carbon stocks. Tiers listed include IPCC global values, country-level stock calculations, and modeled values. Tier I stocks correspond to IPCC global values, Tier II stocks correspond to country-level stock calculations, Tier III stocks correspond to modeled values. The reporting tier listed is the highest available resolution for a given territory and habitat. 
+# 
+# Reporting Insight: Specifies whether country-specific or modeled carbon stock averages overlap with IPCC global values")
 ```
-
 
 
 ## References

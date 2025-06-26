@@ -28,8 +28,8 @@ writeBibs <- function(chosen_geog){
 
 #render maps -- DO NOT use if html report 
 
-#map 1 -> when there is no CCA data
-renderMap1 <- function(chosen_geog){
+#map 1 -> when there is no CCA data - not used in html reports 
+#renderMap1 <- function(chosen_geog){
   select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
     dplyr::select(territory = admin) %>% 
     dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
@@ -51,8 +51,8 @@ renderMap1 <- function(chosen_geog){
   
 }
 
-#map 2 -> when there is CCA data 
-renderMap2 <- function(chosen_geog){
+#map 2 -> when there is CCA data - not used in html reports 
+#renderMap2 <- function(chosen_geog){
   select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
     dplyr::select(territory = admin) %>% 
     dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
@@ -171,15 +171,15 @@ territory_citations <- citations %>%
 
 # 1. write bibs
 
-for (i in seq_along(tierIgeog_list)) {
-
-  writeBibs(tierIgeog_list[i])
-}
-
-for (i in seq_along(tierITEST)) {
-  
-  writeBibs(tierITEST[i])
-}
+# for (i in seq_along(tierIgeog_list)) {
+# 
+#   writeBibs(tierIgeog_list[i])
+# }
+# 
+# for (i in seq_along(tierITEST)) {
+#   
+#   writeBibs(tierITEST[i])
+# }
 
 # 2. render maps 
 
@@ -196,9 +196,9 @@ for (i in seq_along(tierITEST)) {
 
 # 3. render reports
  
-for (i in seq_along(tierIgeog_list)) {
+for (i in seq_along(tierITEST)) {
   
-  {writeInsightsNOdat(tierIgeog_list[i])}
+  {writeInsightsNOdat(tierITEST[i])}
 }
 
 for (i in seq_along(tierIITEST)) {
@@ -206,9 +206,8 @@ for (i in seq_along(tierIITEST)) {
   {writeInsightsDat(tierIITEST[i])}
 }
 
+writeBibs("Brazil")
 
-
-writeInsightsNOdat("Peru")
-writeInsightsDat("Brazil")
-
+writeInsightsNOdat("Fiji")
+writeInsightsDat("Belize")
 
