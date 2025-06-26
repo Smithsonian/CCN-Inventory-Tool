@@ -113,6 +113,26 @@ map_input <- bind_rows(core_stocks, biomass_stocks) %>%
   drop_na(latitude, longitude) %>% 
   select(country, territory, admin_division, everything())
 
+# create summary table of territory bounds from map_polys
+
+terr_list <- split(map_polys, map_polys$territory)
+terr_bounds <- bind_rows(lapply(terr_list, function(i){st_bbox(i)}), .id = "territory") %>% 
+  mutate(xmax = as.numeric(xmax),
+         xmin = as.numeric(xmin),
+         ymax = as.numeric(ymax),
+         ymin = as.numeric(ymin)) %>% 
+  # mutate(across(c(xmin, xmax, ymin, ymax), ~as.numeric())) 
+  # correct bounds for the continental US
+  filter(territory != "United States") %>% 
+  add_row(territory = "United States",
+          xmin = -124.736342,
+          ymin = 24.521208,
+          xmax = -66.945392,
+          ymax = 49.382808)
+
+# leaflet() %>% addTiles() %>% 
+  # fitBounds(-124.736342, 24.521208, -66.945392, 49.382808)
+
 ## ... Main Table ####
 
 veg_smry <- biomass_stocks %>% 
@@ -154,13 +174,13 @@ main_table <- all_stocks_raw %>%
 
 # pre-render global figs
 globalStocks(main_table, "mangrove")
-ggsave("app/www/figures/global_mangrove_stocks.jpg", width = 6, height = 7)
+ggsave("app/www/figures/global_mangrove_stocks.jpg", width = 7, height = 5)
 
 globalStocks(main_table, "marsh")
-ggsave("app/www/figures/global_marsh_stocks.jpg", width = 6, height = 6)
+ggsave("app/www/figures/global_marsh_stocks.jpg", width = 7, height = 5)
 
 globalStocks(main_table, "seagrass")
-ggsave("app/www/figures/global_seagrass_stocks.jpg", width = 6, height = 6)
+ggsave("app/www/figures/global_seagrass_stocks.jpg", width = 7, height = 5)
 
 #   # upscale estimates using habitat area
 #   dplyr::mutate(`habitat area (Ha)` = round(area_ha, 2),
@@ -188,7 +208,8 @@ app_data <- list(
   main_table = main_table,
   territory_tec = territory_tec,
   map_input = map_input,
-  map_polys = map_polys
+  terr_bounds = terr_bounds
+  # map_polys = map_polys
   )
 # tier2data = tier2stocks,
 # tier1data = tier1stocks,

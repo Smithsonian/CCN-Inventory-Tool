@@ -69,3 +69,24 @@ globalStocks <- function(x, var){
   )
   return(p)
 }
+
+# Function to find figure 
+
+globalStocksFig <- function(var){
+  
+  figpaths <- list.files("www/figures", full.names = "T")
+  
+  # apply appropriate IPCC global value for selected habitat
+  switch(var,
+         "mangrove" = {
+           p <- figpaths[grep("mangrove", figpaths)]
+         },
+         "marsh" = {
+           p <- figpaths[grep("marsh", figpaths)]
+         },
+         "seagrass" = {
+           p <- figpaths[grep("seagrass", figpaths)]
+         }
+  )
+  return(p)
+}

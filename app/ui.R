@@ -78,7 +78,7 @@ fluidPage(
                                                                        label = "Select a habitat", 
                                                                        choices = c("mangrove", "marsh", "seagrass"), 
                                                                        inline = T),
-                                                          plotOutput("worldstockplot")),
+                                                          imageOutput("worldstockplot")), # previously plotOutput
                                                  tabPanel("Country Stocks", value = "stockpanel", plotlyOutput("efplot")),
                                                  tabPanel("Habitat Area", plotlyOutput("activityplot")),
                                                  tabPanel("Data Availability", plotlyOutput("datastatus"))

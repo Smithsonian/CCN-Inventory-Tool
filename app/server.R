@@ -22,13 +22,12 @@ function(input, output, session) {
     )
   }) 
   
-  r <- reactive(
-    # which(map_input$country == input$chosen_country)
-    map_polys %>% dplyr::filter(territory == input$chosen_geography)
-  )
+  geo_bounds <- reactive({
+    # map_polys %>% dplyr::filter(territory == input$chosen_geography)
+    terr_bounds %>% dplyr::filter(territory == input$chosen_geography)
+  })
   
   geography_subset <- reactive({
-    
     if(nchar(input$chosen_geography)==0){
       stocktable <- main_table
     } else {
@@ -37,8 +36,9 @@ function(input, output, session) {
     return(stocktable)
   })
 
-  dat <- reactive({
+  points_subset <- reactive({
     map_input %>% dplyr::filter(territory == input$chosen_geography)
+      # mutate(highlight = ifelse(territory == input$chosen_geography, T, F))
   })
 
   observeEvent(input$chosen_geography, {
@@ -47,10 +47,17 @@ function(input, output, session) {
     }
   })
   
+  # when resent map button is pushed
+  # return to global stocks panel and reset geography selection input
+  observeEvent(input$reset, {
+    updateTabsetPanel(session, "inTabset", selected = "globalpanel")
+    updateSelectInput(session, "chosen_geography", selected = c("Choose" =""))
+  })
+  
   ## Map -------------------
 
   # Feature: Zoom options for globe or particular country
-#initial map state --> world map with all cca samples   
+  # initial map state --> world map with all cca samples   
   output$map <-
     
     renderLeaflet({
@@ -61,42 +68,51 @@ function(input, output, session) {
         addTiles(group = "OSM (default)") %>%
         
         # add data points (global cca samples)
-        addCircleMarkers(data = map_input,
+        addCircleMarkers(data = map_input %>% filter(carbon_pool == "soil"),
                          lng = ~longitude, lat = ~latitude, radius = 2,
                          label = ~paste(habitat, carbon_pool, "data", sep = " "),
-                         group = "Samples", 
+                         group = "Soil Samples", 
                          # eventually have veg be plotted separately for color coding
-                         color = "green") 
+                         color = "#7570b3") %>% 
+        addCircleMarkers(data = map_input %>% filter(carbon_pool == "vegetation"),
+                         lng = ~longitude, lat = ~latitude, radius = 2,
+                         label = ~paste(habitat, carbon_pool, "data", sep = " "),
+                         group = "Plant Surveys", 
+                         # eventually have veg be plotted separately for color coding
+                         color = "#1b9e77") %>% 
+        #add layer options 
+        addLayersControl(
+          baseGroups = c("OSM (default)", "CartoDB"),
+          overlayGroups = c("Soil Samples", "Plant Surveys"), # "Border"
+          options = layersControlOptions(collapsed = FALSE)
+        )
     })
   
+  # map_input <- map_input %>% mutate(highlight = ifelse(territory == input$chosen_geography, T, F))
+  # pal <- colorFactor(palette = "Dark2", domain = dat()$highlight)
   
   ## An observe statement to update the map, filtering to chosen territory 
   observeEvent(input$chosen_geography, {
     
-    bounds <- st_bbox(r()) %>% as.vector()
-
+    bounds <- geo_bounds() %>% dplyr::select(-territory) %>% as.numeric() # define bounding box for polygon
+    # json_geo <- sf_geojson(r(), atomise = F) # convert to GEOjson for plotting
+    
     # using leafletProxy to call in original map 
     leafletProxy(mapId = "map") %>%
+      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4])
       # reset map layers
-      # clearMarkers() %>%
+      # removeMarker(group = "highlight") %>%
       # clearControls() %>% 
-      clearShapes() %>% 
+      # clearShapes() %>% 
+      # clearGeoJSON() %>% 
 
-      # add polygon layer
-      addPolygons(data = r(), weight = 2, fill = T, opacity = 0.1,
-                  group = "Border") %>%
-
-      # #auto zoom to selection
-      # fitBounds is more straightforward, but people love a smooth transition
-      flyToBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>% 
-      
-      #add layer options 
-      addLayersControl(
-        baseGroups = c("OSM (default)", "CartoDB"),
-        overlayGroups = c("Samples", "Border"),
-        options = layersControlOptions(collapsed = FALSE)
-      )
-      
+      # # add polygon layer
+      # addPolygons(data = r(), weight = 2, fill = T, opacity = 0.1,
+      #             group = "Border") %>%
+      # addGeoJSON(json_geo, weight = 1, group = "Border") %>% 
+      # addCircleMarkers(data = dat(), lng = ~longitude, lat = ~latitude, radius = 2, color = "red") %>%
+      # # #auto zoom to selection
+      # # fitBounds is more straightforward, but people love a smooth transition
   })
   
   
@@ -104,19 +120,27 @@ function(input, output, session) {
  observeEvent(input$reset, {
     
    leafletProxy(mapId = "map") %>% 
-     clearShapes() %>% clearControls() %>% 
-     flyToBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4])
+     # clearGeoJSON() %>% 
+     # clearShapes() %>% 
+     # clearControls() %>% 
+     fitBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4])
  })
   
  ## Plots ----------------
   
  ## Global Stock Plot
- output$worldstockplot <- renderPlot({
-   req(input$chosen_habitat)
-   
-   globalStocks(main_table, input$chosen_habitat)
-
- })
+ # output$worldstockplot <- renderPlot({
+ #   req(input$chosen_habitat)
+ #   
+ #   globalStocks(main_table, input$chosen_habitat)
+ # 
+ # })
+ 
+ output$worldstockplot <- renderImage({ 
+     list(src = globalStocksFig(input$chosen_habitat), height = "100%") 
+   }, 
+   deleteFile = FALSE 
+ ) 
  
  
  ## Data Status
@@ -212,7 +236,7 @@ function(input, output, session) {
     # need to format the names of the table columns to be more user friendly
     DT::datatable(geography_subset() %>% 
                     mutate(across(c(area_ha, compiled_EF, compiled_UpperCI, compiled_LowerCI, veg_TierII_mean, veg_TierII_se), 
-                                  ~round(.x, 2))) %>% 
+                                  ~round(.x, 2))) %>% # some numbers aren't rounding well..still have non-terminating decimals
                     mutate(compiled_EF = case_when(!is.na(compiled_EF) ~ paste0(compiled_EF, " (+", 
                                                                                 compiled_UpperCI - compiled_EF, "/-", 
                                                                                 compiled_EF - compiled_LowerCI, ")"),
@@ -230,7 +254,7 @@ function(input, output, session) {
                            `Habitat Area (ha)` = area_ha),
                   
                   caption = "Carbon stocks estimated for tidal wetland ecosystems.",
-                  options = list(searching = FALSE,
+                  options = list(searching = TRUE,
                                  paging = FALSE,
                                  info = FALSE,
                                  scrollY = 300,

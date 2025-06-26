@@ -19,6 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(knitr)
 library(sf)
+# library(geojsonsf)
 # library(shinyBS)
 
 # source utilities
@@ -32,7 +33,8 @@ app_data <- readRDS("data/app_data.rds")
 # Extract components from RDS
 main_table <- app_data$main_table %>% arrange(territory, habitat)
 map_input <- app_data$map_input
-map_polys <- app_data$map_polys
+# map_polys <- app_data$map_polys
+terr_bounds <- app_data$terr_bounds
 
 ## Map Input ----
 
