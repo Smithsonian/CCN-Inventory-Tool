@@ -92,7 +92,9 @@ function(input, output, session) {
   # pal <- colorFactor(palette = "Dark2", domain = dat()$highlight)
   
   ## An observe statement to update the map, filtering to chosen territory 
-  observeEvent(input$chosen_geography, {
+  # observeEvent(input$chosen_geography, {
+  observe({
+    geography_subset() # this is the triggering reactive 
     
     bounds <- geo_bounds() %>% dplyr::select(-territory) %>% as.numeric() # define bounding box for polygon
     # json_geo <- sf_geojson(r(), atomise = F) # convert to GEOjson for plotting
@@ -113,8 +115,8 @@ function(input, output, session) {
       # addCircleMarkers(data = dat(), lng = ~longitude, lat = ~latitude, radius = 2, color = "red") %>%
       # # #auto zoom to selection
       # # fitBounds is more straightforward, but people love a smooth transition
+    
   })
-  
   
 #reset to original world map, linked to action button   
  observeEvent(input$reset, {
@@ -136,75 +138,87 @@ function(input, output, session) {
  # 
  # })
  
- output$worldstockplot <- renderImage({ 
+ observeEvent(input$chosen_habitat, {
+   
+   output$worldstockplot <- renderImage({ 
      list(src = globalStocksFig(input$chosen_habitat), height = "100%") 
    }, 
    deleteFile = FALSE 
- ) 
+   ) 
+ })
  
  
  ## Data Status
  ## quantity, quality, representation 
  # use value boxes instead to express: # soil cores; # habitats represented; # plots surveyed
  # the plot should be that of the area-normalized sampling effort
- output$datastatus <- renderPlotly({
-   req(input$chosen_geography)
-   
-   #case where there are cores available in CCA 
-   #if(input$chosen_country %in% datastatus_counts$country){
-   dat() %>% 
-     dplyr::count(carbon_pool, habitat, territory) %>% 
-     plot_ly(x = ~habitat, y = ~n, type = "bar",
-             color = ~carbon_pool) %>% 
-     layout(xaxis = list(title = "Habitat Type"),
-            yaxis = list(title = "Number of Samples"))
-   # include legend even when theres just one type of sample
-   # specify what a sample unit is: soils = core; vegetation = plot
-   
-   # dat() %>% 
-   #   dplyr::count(carbon_pool, habitat, country) %>% 
-   #   
-   #   ggplot2::ggplot() + 
-   #   geom_col(aes(habitat, n, fill = carbon_pool)) +
-   #   # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
-   #   coord_flip() +
-   #   ylab("Number of Samples") + theme_bw(base_size = 20) +
-   #   theme(legend.position = "bottom")
-   
-   # } else {
-   #   table_other <- tibble(country = input$chosen_country,
-   #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
-   #                         data_tier_available = "Tier I")
-   # }
- }) #%>% bindEvent(input$go)
+ 
+ observeEvent(input$chosen_geography, {
+   output$datastatus <- renderPlotly({
+     # req(input$chosen_geography)
+     
+     #case where there are cores available in CCA 
+     #if(input$chosen_country %in% datastatus_counts$country){
+     points_subset() %>% 
+       dplyr::count(carbon_pool, habitat, territory) %>% 
+       plot_ly(x = ~habitat, y = ~n, type = "bar",
+               color = ~carbon_pool) %>% 
+       layout(xaxis = list(title = "Habitat Type"),
+              yaxis = list(title = "Number of Samples"))
+     # include legend even when theres just one type of sample
+     # specify what a sample unit is: soils = core; vegetation = plot
+     
+     # dat() %>% 
+     #   dplyr::count(carbon_pool, habitat, country) %>% 
+     #   
+     #   ggplot2::ggplot() + 
+     #   geom_col(aes(habitat, n, fill = carbon_pool)) +
+     #   # geom_errorbar(aes(x= habitat, ymin = cores, ymax = hectare_UpperCI, y= area_ha), width = 0.1) +
+     #   coord_flip() +
+     #   ylab("Number of Samples") + theme_bw(base_size = 20) +
+     #   theme(legend.position = "bottom")
+     
+     # } else {
+     #   table_other <- tibble(country = input$chosen_country,
+     #                         availability = "There are currently no values for this country available in the Coastal Carbon Atlas. Go sample!",
+     #                         data_tier_available = "Tier I")
+     # }
+   }) #%>% bindEvent(input$go)
+ })
+
   
  ## Emission Factor plot
  # what about veg?
- output$efplot <- renderPlotly({
-   req(input$chosen_geography)
-   
-   plot_ly(geography_subset(), x = ~habitat, y = ~soil_TierI_mean, type = "bar", 
-           error_y = ~list(array = soil_TierI_upperCI - soil_TierI_mean, 
-                           arrayminus = soil_TierI_mean - soil_TierI_lowerCI, color = "black"),
-           name = "IPCC global value") %>% 
-     add_trace(y = ~soil_TierII_mean, 
-               error_y = ~list(array = soil_TierII_upperCI - soil_TierII_mean, 
-                               arrayminus = soil_TierII_mean - soil_TierII_lowerCI, color = "black"),
-               name = "Country-specific value") %>% 
-     add_trace(y = ~soil_TierIII_mean, 
-               error_y = ~list(array = soil_TierIII_upperCI - soil_TierIII_mean, 
-                               arrayminus = soil_TierIII_mean - soil_TierIII_lowerCI, color = "black"),
-               name = "Modeled value") %>% 
-     layout(
-       # title = "",
-       xaxis = list(title = "Habitat Type"),
-       yaxis = list(title = "Soil Carbon Stock (Mg/ha)"))
-   
- }) 
+ 
+ observeEvent(input$chosen_geography, { 
+   output$efplot <- renderPlotly({
+     # req(input$chosen_geography)
+     
+     plot_ly(geography_subset(), x = ~habitat, y = ~soil_TierI_mean, type = "bar", 
+             error_y = ~list(array = soil_TierI_upperCI - soil_TierI_mean, 
+                             arrayminus = soil_TierI_mean - soil_TierI_lowerCI, color = "black"),
+             name = "IPCC global value") %>% 
+       add_trace(y = ~soil_TierII_mean, 
+                 error_y = ~list(array = soil_TierII_upperCI - soil_TierII_mean, 
+                                 arrayminus = soil_TierII_mean - soil_TierII_lowerCI, color = "black"),
+                 name = "Country-specific value") %>% 
+       add_trace(y = ~soil_TierIII_mean, 
+                 error_y = ~list(array = soil_TierIII_upperCI - soil_TierIII_mean, 
+                                 arrayminus = soil_TierIII_mean - soil_TierIII_lowerCI, color = "black"),
+                 name = "Modeled value") %>% 
+       layout(
+         # title = "",
+         xaxis = list(title = "Habitat Type"),
+         yaxis = list(title = "Soil Carbon Stock (Mg/ha)"))
+     
+   }) 
+ })
   
   ## Activity Data
+ 
+ observeEvent(input$chosen_geography, { 
   output$activityplot <- renderPlotly({
-    req(input$chosen_geography)
+    # req(input$chosen_geography)
     
     geography_subset() %>% 
       plot_ly(x = ~habitat, y = ~area_ha, type = "bar",
@@ -227,9 +241,11 @@ function(input, output, session) {
     # make it an option to change plotting units? (ex. km^2)
     
   }) #%>% bindEvent(input$go)
-
+})
   ## Tables --------------
     
+ 
+ observeEvent(input$chosen_geography, { 
   output$tec <- renderDataTable({
     # req(input$chosen_geography)
  
@@ -262,6 +278,7 @@ function(input, output, session) {
                                  scrollCollapse = TRUE),
                   rownames = FALSE)
   }) 
+ })
     
   ## Report Download ---------------
   
