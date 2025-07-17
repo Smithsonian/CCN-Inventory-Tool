@@ -199,15 +199,15 @@ kable(totals, caption = "Total Territory-Level Stocks")
 
 ### Mangrove Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_mangrove)`** megagrams per hectare (Mg/ha) soil carbon in mangrove habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r totalstocks_mangrove`** megagrams soil carbon in mangrove habitats.
 
 ### Tidal Marsh Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_marsh)`** megagrams per hectare (Mg/ha) soil carbon in tidal marsh habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_marsh)`** megagrams soil carbon in tidal marsh habitats.
 
 ### Seagrass Estimates
 
-This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_seagrass, 3)`** megagrams per hectare (Mg/ha) soil carbon in seagrass habitats.
+This total estimate includes country-level mangrove carbon stock estimates, with a mean estimate of **`r signif(totalstocks_seagrass, 3)`** megagrams soil carbon in seagrass habitats.
 
 ## Wetland Areas and Activities
 

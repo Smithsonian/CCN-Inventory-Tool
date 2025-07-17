@@ -19,13 +19,14 @@ library(knitr)
 library(kableExtra)
 library(leaflet)
 library(plotly)
+library(sf)
 options(scipen = 999)
 
 ### This script writes the country insights pdf for the case of countries with AVAILABLE Tier II DATA 
 
 #function to select only observations with chosen country 
 selectGeography <- function(df){
-  df %>% filter(territory == chosen_geog)
+  df %>% dplyr::filter(territory == chosen_geog)
 }
 
 #country lookup table 
@@ -46,8 +47,8 @@ app_data <- readRDS("app_data.rds")
 allstocks <- app_data$main_table %>% selectGeography()
 totalstocks <- app_data$territory_tec %>% selectGeography()
 map_input <- app_data$map_input %>% selectGeography
-map <- app_data$map_polys %>% selectGeography()
-
+#map <- app_data$map_polys %>% selectGeography()
+map <- st_read("territory_shapefiles/ccn_territory_map.shp") %>% selectGeography()
 
 rm(app_data) #keeps the rds out of the environment 
 ```
@@ -57,20 +58,20 @@ rm(app_data) #keeps the rds out of the environment
 
 #mangrove values 
 mangrove_area <- allstocks %>% filter(habitat == "mangrove")
-area_ha_mangrove <- signif(mangrove_area$area_ha, 4)
-area_low_mangrove <- signif(mangrove_area$area_ha_lowerCI, 4)
-area_high_mangrove <- signif(mangrove_area$area_ha_upperCI, 4)
+area_ha_mangrove <- signif(mangrove_area$area_ha, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+area_low_mangrove <- signif(mangrove_area$area_ha_lowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+area_high_mangrove <- signif(mangrove_area$area_ha_upperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 
 #marsh values
 marsh_area <- allstocks %>% filter(habitat == "marsh")
-area_ha_marsh <- signif(marsh_area$area_ha, 4)
-area_low_marsh <- signif(marsh_area$area_ha_lowerCI, 4)
-area_high_marsh <- signif(marsh_area$area_ha_upperCI, 4)
+area_ha_marsh <- signif(marsh_area$area_ha, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+area_low_marsh <- signif(marsh_area$area_ha_lowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+area_high_marsh <- signif(marsh_area$area_ha_upperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 
 
 #seagrass values 
 seagrass_area <- allstocks %>% filter(habitat == "seagrass")
-area_ha_seagrass <- signif(seagrass_area$area_ha, 4)
+area_ha_seagrass <- signif(seagrass_area$area_ha, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 #no CIs
 ```
 
@@ -80,10 +81,10 @@ area_ha_seagrass <- signif(seagrass_area$area_ha, 4)
   #selectCountry()
 
 #total stocks// per total territory
-stock_country <- signif(countrystock$Total_Stocks, 4)
-stock_country_low <- signif(countrystock$Total_Stockers_LowerCI, 4)
-stock_country_high <- signif(countrystock$Total_Stockers_UpperCI, 4)
-stock_country_se <- signif(countrystock$Total_SE, 4)
+stock_country <- signif(countrystock$Total_Stocks, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+stock_country_low <- signif(countrystock$Total_Stockers_LowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+stock_country_high <- signif(countrystock$Total_Stockers_UpperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+stock_country_se <- signif(countrystock$Total_SE, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 
 #total stocks per habitat per territory 
 #this is now taken from different table 
@@ -92,20 +93,20 @@ marsh_stocks <- allstocks %>% filter(habitat == "marsh")
 seagrass_stocks <- allstocks %>% filter(habitat == "seagrass")
 
 #mangrove
-totalstocks_mangrove <- signif(mangrove_stocks$Total_Stocks, 4)
-totalstocks_mangrove_upper <- signif(mangrove_stocks$area_ha_upperCI, 4)
-totalstocks_mangrove_lower <- signif(mangrove_stocks$area_ha_lowerCI, 4)
+totalstocks_mangrove <- signif(mangrove_stocks$Total_Stocks, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_mangrove_upper <- signif(mangrove_stocks$area_ha_upperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_mangrove_lower <- signif(mangrove_stocks$area_ha_lowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
   
 #marsh
-totalstocks_marsh <- signif(marsh_stocks$Total_Stocks, 4)
-totalstocks_marsh_upper <- signif(marsh_stocks$area_ha_upperCI, 4)
-totalstocks_marsh_lower <- signif(marsh_stocks$Total_Stocks_LowerCI, 4)
+totalstocks_marsh <- signif(marsh_stocks$Total_Stocks, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_marsh_upper <- signif(marsh_stocks$area_ha_upperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_marsh_lower <- signif(marsh_stocks$Total_Stocks_LowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 
 
 #seagrass 
-totalstocks_seagrass <- signif(seagrass_stocks$Total_Stocks, 4)
-totalstocks_seagrass_upper <- signif(seagrass_stocks$area_ha_upperCI, 4)
-totalstocks_seagrass_lower <- signif(seagrass_stocks$Total_Stocks_LowerCI, 4)
+totalstocks_seagrass <- signif(seagrass_stocks$Total_Stocks, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_seagrass_upper <- signif(seagrass_stocks$area_ha_upperCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
+totalstocks_seagrass_lower <- signif(seagrass_stocks$Total_Stocks_LowerCI, 4) %>% prettyNum(big.mark = ",", scientific = FALSE)
 
 ```
 
@@ -152,16 +153,16 @@ leaflet() %>%
 
 
 ```
-This map represents the area of **`r chosen_geog`** and the locations of both soil cores and vegetation samples included in the Coastal Carbon Atlas. 
+This map represents the area of **`r chosen_geog`** and the locations of both soil cores and any vegetation samples included in the Coastal Carbon Atlas used for the estimation of carbon stock.
 
 
 ## Total Carbon Stock Estimates
 
 Total Carbon stock estimates were calculated for each geography in total, and for mangrove, tidal marsh, and seagrass habitats, when available.
 
-We estimate that **`r chosen_geog`** contains a mean estimate of `r stock_country` megagrams per hectare sediment carbon stock. 
+We estimate that **`r chosen_geog`** contains a mean estimate of `r stock_country` megagrams sediment carbon stock. 
 
-We estimate that **`r chosen_geog`** contains between `r stock_country_low` to `r stock_country_high` megagrams per hectare sediment carbon to a depth of 1 m, with a mean estimate of `r stock_country` megagrams per hectare.
+We estimate that **`r chosen_geog`** contains between `r stock_country_low` to `r stock_country_high` megagrams sediment carbon to a depth of 1 m, with a mean estimate of `r stock_country` megagrams.
 
 ### Total Territory-Level Stocks
 ```{r table1 territory total, echo=FALSE}
@@ -172,10 +173,12 @@ totals <- totalstocks %>%
          Territory = territory,
          `Total Stocks` = signif(Total_Stocks, 4),
          `Upper CI` = signif(Total_Stockers_UpperCI, 4),
-         `Lower CI` = signif(Total_Stockers_LowerCI, 4)) %>%
+         `Lower CI` = signif(Total_Stockers_LowerCI, 4),
+         `Total Stocks` = prettyNum(big.mark = ",", scientific = FALSE)) %>%
   select(Country, Territory, `Total Stocks`, `Upper CI`, `Lower CI`)
 
-kable(totals, caption = "Total Geography Level Carbon Stocks")
+kable(totals, caption = "Total Geography Level Carbon Stocks",
+      format.args = list(big.mark = ","))
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE} 
@@ -196,7 +199,7 @@ kable(totals, caption = "Total Geography Level Carbon Stocks")
 
 ### Total Mangrove Stocks 
 ```{r table2 mangrove, echo=FALSE}
-totalstocks_mangrove <- signif(totalstocks_mangrove, 4)
+totalstocks_mangrove <- totalstocks_mangrove
 
 
 # cat("This total estimate includes total mangrove soil carbon stocks, with a mean estimate of", totalstocks_mangrove, "megagrams per hectare soil carbon to a depth of 1 meter.")
@@ -214,7 +217,8 @@ mangrove_totals <- allstocks %>% filter(habitat == "mangrove") %>%
   janitor::remove_empty(which = c("cols")) %>% #removes any empty columns if country is missing data 
   select(Country, Territory, Habitat, `Total Stock`, `Lower CI`, `Upper CI`, `Standard Error`)
 
-kable(mangrove_totals)
+kable(mangrove_totals, 
+      format.args = list(big.mark = ","))
 ```
 
 This total estimate includes total mangrove soil carbon stocks, with a mean estimate of `r totalstocks_mangrove` megagrams per hectare soil carbon to a depth of 1 meter.
@@ -241,9 +245,9 @@ marsh_data_eval <- isTRUE(totalstocks_marsh > 0)
 ### Total Marsh Stocks 
 ```{r table3 marsh, eval=show_textmarsh, echo=FALSE, results='asis'}
 
-totalstocks_marsh_lower <- signif(totalstocks_marsh_lower, 4)
-totalstocks_marsh_upper <- signif(totalstocks_marsh_upper, 4)
-totalstocks_marsh <- signif(totalstocks_marsh, 4)
+# totalstocks_marsh_lower <- signif(totalstocks_marsh_lower, 4)
+# totalstocks_marsh_upper <- signif(totalstocks_marsh_upper, 4)
+# totalstocks_marsh <- signif(totalstocks_marsh, 4)
 
 # cat("This total estimate also includes total tidal marsh carbon stocks, ranging from", totalstocks_marsh_lower, "to", totalstocks_marsh_upper,", with a mean estimate of",totalstocks_marsh,"megagrams per hectare.")
 
@@ -260,10 +264,11 @@ marsh_totals <- allstocks %>% filter(habitat == "marsh") %>%
   janitor::remove_empty(which = c("cols")) %>% #removes any empty columns if country is missing data 
   select(Country, Territory, Habitat, `Total Stock`, `Lower CI`, `Upper CI`, `Standard Error`)
 
-kable(marsh_totals)
+kable(marsh_totals,
+      format.args = list(big.mark = ","))
 ```
 
-This total estimate also includes total tidal marsh carbon stocks, with a mean estimate of `r totalstocks_marsh` megagrams per hectare soil carbon to a depth of 1 meter.
+This total estimate also includes total tidal marsh carbon stocks, with a mean estimate of `r totalstocks_marsh` megagrams soil carbon to a depth of 1 meter.
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE} 
@@ -287,7 +292,7 @@ This total estimate also includes total tidal marsh carbon stocks, with a mean e
 ### Total Seagrass Stocks
 ```{r table4 seagrass, echo=FALSE}
 
-totalstocks_seagrass <- signif(totalstocks_seagrass, 4)
+#totalstocks_seagrass <- signif(totalstocks_seagrass, 4)
 
 # cat("We estimate seagrass soil carbon stocks for", chosen_geog, "to have a mean estimate of", totalstocks_seagrass, "megagrams per hectare sediment carbon stock.")
 
@@ -302,10 +307,11 @@ seagrass_totals <- allstocks %>% filter(habitat == "seagrass") %>%
   select(Territory, Habitat, `Total Stock`)
 
 
-kable(seagrass_totals)
+kable(seagrass_totals,
+      format.args = list(big.mark = ","))
 ```
 
-This estimate also includes seagrass soil carbon stocks for `r chosen_geog` which we estimate to have a mean of `r totalstocks_seagrass` megagrams per hectare sediment carbon stock.
+We estimate seagrass habitats in `r chosen_geog` to have a mean of `r totalstocks_seagrass` megagrams of sediment carbon stock. This value is not included in the total country-level stock estimate due to the lack of a global, transparent, and independently assessed seagrass habitat map.
 
 ## Wetland Areas and Activities
 
@@ -319,19 +325,19 @@ We estimate seagrass area to be **`r chosen_geog`** to be a mean of `r area_ha_s
 
 ## Calculated Stocks and Emissions Factors
 
-```{r N_cores, echo = FALSE}
+```{r N_cores, echo = FALSE, warning=FALSE}
 #cores, sites, habitats for soil cores included in tier II calcs 
-cores <- chosen_map_input %>% filter(carbon_pool == "soil") %>% count() 
-veg_samples <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% count()
+#cores <- chosen_map_input %>% filter(carbon_pool == "soil") %>% count() 
+#veg_samples <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% count()
 sites <- chosen_map_input %>% filter(carbon_pool == "soil") %>% select(site_id) %>% distinct() %>% count()
-veg_sites <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% select(site_id) %>% distinct() %>% count()
+#veg_sites <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% select(site_id) %>% distinct() %>% count()
 habitats <- chosen_map_input %>% filter(carbon_pool == "soil") %>% select(habitat) %>% distinct() %>% count()
-veg_habitat <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% select(habitat) %>% distinct() %>% count()
+#veg_habitat <- chosen_map_input %>% filter(carbon_pool == "vegetation") %>% select(habitat) %>% distinct() %>% count()
 
 habitat.list <- selectCountry(map_input) %>% filter(carbon_pool == "soil") %>% select(habitat) %>% distinct()
-veg.habitat.list <- selectCountry(map_input) %>% filter(carbon_pool == "vegetation") %>% select(habitat) %>% distinct()
+#veg.habitat.list <- selectCountry(map_input) %>% filter(carbon_pool == "vegetation") %>% select(habitat) %>% distinct()
 habitat.list <- as.character(habitat.list)
-veg.habitat.list <- as.character(veg.habitat.list)
+#veg.habitat.list <- as.character(veg.habitat.list)
 
 
 ## veg data present? 
@@ -344,9 +350,9 @@ This section of the report details whether data is available to estimate Tier I,
 
 If data for the selected country is available in the Coastal Carbon Atlas, we have applied a Tier II emission factor based on a simple average of country specific data queried from the Atlas.
 
-Within the Coastal Carbon Atlas, data from the selected geography, `r chosen_geog`, includes soil samples and vegetation samples.
+Within the Coastal Carbon Atlas, data from the selected geography, **`r chosen_geog`**, includes soil samples but does not include vegetation samples
 
-Soil core data from **`r chosen_geog`** included in the Coastal Carbon Atlas consists of `r cores` soil profiles from `r sites` sites. This data comes from `r habitats` distinct habitat type(s). At present, there are `r veg_samples` vegetation samples. 
+Soil core data from **`r chosen_geog`** included in the Coastal Carbon Atlas consists of 1107 soil profiles from 540 unique sites. This data comes from 5 distinct habitat types, including marsh, mangrove, seagrass, scrub/shrub and swamp.
 
 
 ```{r if veg data, echo=FALSE}
@@ -391,7 +397,7 @@ tier_marsh <- allstocks %>% filter(habitat == "marsh") %>% select(TierIorII)
 tier_seagrass <- allstocks %>% filter(habitat == "seagrass") %>% select(TierIorII)
 
 tiertable <- allstocks %>% select(country, territory, habitat, TierIorII, tier_II_overlaps_TierI) %>% 
-  rename(Country = country, 
+  dplyr::rename(Country = country, 
          Territory = territory,
          Habitat = habitat,
          Tier = TierIorII,
@@ -413,6 +419,8 @@ kable(tiertable, caption = "Availiability of Territory-Level Data")
 
 This section includes estimated global sediment carbon stocks included for **`r chosen_geog`**. In the case that any habitats; mangrove, tidal marsh, or seagrass do not have availiable territory-level estimates, please refer to Table 2: IPCC Tier I Value Estimates for applicable global values.
 
+Good news! The selected country has territory-level data for each available habitat. Please refer to Table 2: IPCC Tier I Value Estimates for applicable Tier I estimates and Table 5: Tier II Carbon Stock Estimates."
+
 ```{r data setup, echo=FALSE}
 tier1data <- allstocks %>% filter(TierIorII == "Tier I")
 tier2data <- allstocks %>% filter(TierIorII == "Tier II")
@@ -420,12 +428,12 @@ tier2data <- allstocks %>% filter(TierIorII == "Tier II")
 ```
 
 ```{r setuptier1, echo=FALSE, warning=FALSE, message=FALSE}
-  if ("Tier I" %in% tiertable$Tier)
-     {show_text = TRUE
-     } else {show_text = FALSE}
+  # if ("Tier I" %in% tiertable$Tier)
+  #    {show_text = TRUE
+  #    } else {show_text = FALSE}
 ```
 
-```{r tier1eval, eval=show_text, echo=FALSE}
+```{r tier1eval, , echo=FALSE}
 # #tier 1 is always == IPCC global values 
 # 
 # #tibble of habitats in territory 
@@ -445,27 +453,27 @@ tier2data <- allstocks %>% filter(TierIorII == "Tier II")
 # kable(tier1stocks, caption = "Tier I: Global Carbon Stock Estimates")
 ```
 
-```{r tier1eval2, eval=show_text, echo=FALSE, results='asis'}
-cat("Good news! The selected country has territory-level data for each available habitat. Please refer to Table 2: IPCC Tier I Value Estimates for applicable Tier I estimates and Table 5: Tier II Carbon Stock Estimates.")
+```{r tier1eval2,  echo=FALSE}
+# cat("Good news! The selected country has territory-level data for each available habitat. Please refer to Table 2: IPCC Tier I Value Estimates for applicable Tier I estimates and Table 5: Tier II Carbon Stock Estimates.")
 ```
 
 ### Tier II: Territory Level Carbon Stocks
 
 This table includes country or territory level sediment carbon stock estimates for **`r chosen_geog`**. Estimates in this table were derived from available soil core data queried from the Coastal Carbon Atlas.
 
-A selected country may have available territory-level values for one or multiple habitats, this is dependent on core data accessible through the Coastal Carbon Atlas. If a territory has habitat area, but that respective habitat type does not have an associated territory-level stock estimate, there is insufficient core data in the Coastal Carbon Atlas to estimate sediment carbon stock. At the time of analysis, referencing Version 1.5.0 of the Coastal Carbon Atlas and Data Library, **`r chosen_geog`** is represented by a total of `r cores` cores across `r habitats` distinct habitat(s).
+A selected country may have available territory-level values for one or multiple habitats, this is dependent on core data accessible through the Coastal Carbon Atlas. If a territory has habitat area, but that respective habitat type does not have an associated territory-level stock estimate, there is insufficient core data in the Coastal Carbon Atlas to estimate sediment carbon stock. At the time of analysis, referencing Version 1.5.0 of the Coastal Carbon Atlas and Data Library, **`r chosen_geog`** is represented by a total of 1107 cores across 5 distinct habitat(s).
 
 ```{r setuptier2_false, echo=FALSE, warning=FALSE, message=FALSE}
-  if ("Tier II" %in% tiertable$Tier)
-     {show_text = TRUE
-     } else {show_text = FALSE}
+  # if ("Tier II" %in% tiertable$Tier)
+  #    {show_text = TRUE
+  #    } else {show_text = FALSE}
 ```
 
 
 ```{r tier2, echo=FALSE}
 library(knitr)
 tier2stocks <- tier2data %>% 
-  rename(Country = country,
+  dplyr::rename(Country = country,
          Territory = territory,
          Habitat = habitat,
         `Mean Stock (MgHa)` = soil_TierII_mean,
@@ -479,7 +487,8 @@ tier2stocks <- tier2data %>%
   #janitor::remove_empty(which = "cols") %>% #removing any habitats without tier II data 
   dplyr::select(Country, Territory, Habitat, `Mean Stock (MgHa)`, `Lower CI`, `Upper CI`, `Standard Error`)
 
-kable(tier2stocks, caption = "Tier II: Territory-Level Carbon Stock Estimates") 
+kable(tier2stocks, caption = "Tier II: Territory-Level Carbon Stock Estimates",
+      format.args = list(big.mark = ",")) 
 ```
 
 ### Tier III Carbon Stocks
@@ -492,9 +501,9 @@ If there are no modeled estimates associated with the selected geography and spe
 #this chunk sets up the condition that there is tier3 data for at least one habitat 
 tier3data <- allstocks %>% filter(!is.na(soil_TierIII_mean))
 
-  if (chosen_geog %in% tier3data$territory)
-     {show_text = TRUE
-     } else {show_text = FALSE}
+  # if (chosen_geog %in% tier3data$territory)
+  #    {show_text = TRUE
+  #    } else {show_text = FALSE}
 
 ```
 
@@ -517,10 +526,10 @@ tierIII_overlaps_tierI_marsh <- marshtier3 %>% select(tierIII_overlaps_tierI)
 
 ```
 
-```{r conditional_block1, eval=show_text, echo=FALSE, results='asis'}
+```{r conditional_block1, echo=FALSE}
 
 tier3stocks <- tier3data %>% 
-  rename(Country = country,
+  dplyr::rename(Country = country,
          Territory = territory,
          Habitat = habitat,
         `Mean Stock (MgHa)` = soil_TierIII_mean,
@@ -531,7 +540,8 @@ tier3stocks <- tier3data %>%
          `Upper CI` = signif(`Upper CI`,3)) %>% 
   select(Country, Territory, Habitat, `Mean Stock (MgHa)`, `Lower CI`, `Upper CI`)
 
- kable(tier3stocks, caption = "Tier III: Modeled Carbon Stock Estimates") 
+ kable(tier3stocks, caption = "Tier III: Modeled Carbon Stock Estimates",
+       format.args = list(big.mark = ",")) 
 
 #create variables to use in inline code
 text1marsh <- tierIII_gtlt_tier_II_marsh
@@ -551,8 +561,9 @@ text4mangrove <- tierIII_overlaps_tierI_mangrove
 
 ```
 
-In mangrove habitats, modeled estimated stock MgHa values are, `r text1mangrove` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2mangrove`. Additionally, estimated modeled stock values derived from remote sensing are `r text3mangrove` estimates global IPCC values. In this case, the modeled `r text4mangrove` global estimates.
+In the selected geography, `r chosen_geog`, modeled estimated stock MgHa values for marsh habitats are, `r text1marsh` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2marsh`. Additionally, estimated modeled stock values derived from remote sensing are `r text3marsh` estimates global IPCC values. In this case, the modeled `r text4marsh` global estimates.
 
+While in mangrove habitats, modeled estimated stock MgHa values are, `r text1mangrove` territory-level values estimated from Coastal Carbon Atlas Data. In this case, the modeled `r text2mangrove`. Additionally, estimated modeled stock values derived from remote sensing are `r text3mangrove` estimates global IPCC values. In this case, the modeled `r text4mangrove` global estimates.
 
 
 ```{r tier3setup2, echo=FALSE, warning=FALSE, message=FALSE}
@@ -587,6 +598,7 @@ map_input %>%
              color = ~carbon_pool) %>% 
      layout(xaxis = list(title = "Habitat Type"),
             yaxis = list(title = "Number of Samples"))
+
 ```
 
 ### 2. Emissions Factors 
@@ -606,23 +618,22 @@ allstocks %>%
   theme_bw() +
   facet_wrap(~`carbon_pool`, 
              # scales = "free", 
-             dir = "v")+
-  labs(title = "Emissions Factors: Palau")
+             dir = "v")
   
 
 ```
 
 ### 3. Activity Data 
 ```{r, echo=FALSE, warning=FALSE, results='hide', fig.keep='all'}
-
+    
 allstocks %>% 
-  ggplot2::ggplot() + 
-  geom_col(aes(habitat, area_ha, fill = habitat)) +
-  geom_errorbar(aes(x= habitat, ymin = area_ha_lowerCI, ymax = area_ha_upperCI, y= area_ha), width = 0.1) +
-  coord_flip() +
-  ylab("Area (hectares)") + theme_bw(base_size = 20) +
-  labs(title = "Habitat Area")
-  theme(legend.position = "bottom")
+      plot_ly(x = ~habitat, y = ~area_ha, type = "bar",
+              # color = ~habitat, colors = "Set1",
+              error_y = ~list(array = area_ha_upperCI - area_ha, 
+                              arrayminus = area_ha - area_ha_lowerCI, color = "black")) %>% 
+      layout(xaxis = list(title = "Habitat Type"),
+             yaxis = list(title = "Area (ha)"))
+
 ```
 
 ```{r, echo=FALSE, results='asis'}

@@ -29,27 +29,27 @@ writeBibs <- function(chosen_geog){
 #render maps -- DO NOT use if html report 
 
 #map 1 -> when there is no CCA data - not used in html reports 
-#renderMap1 <- function(chosen_geog){
-  select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
-    dplyr::select(territory = admin) %>% 
-    dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
-    filter(territory == chosen_geog)
-  
-  geographies_list <- allstocks %>% select(country, territory) %>% 
-    distinct()
-  chosen_country <- geographies_list$country
-  
-  map <- leaflet() %>% 
-    # basemap options
-    addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers 
-    
-    #add polygon layer for selected territory border 
-    addPolygons(data = select_map_territory, weight = 2)
-  
-  #save as png to use in md pdf - does not allow leaflet (html widgets)
-  mapshot(map, file = paste0("app/data/reports/", chosen_geog, ".png"))
-  
-}
+# #renderMap1 <- function(chosen_geog){
+#   select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
+#     dplyr::select(territory = admin) %>% 
+#     dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
+#     filter(territory == chosen_geog)
+#   
+#   geographies_list <- allstocks %>% select(country, territory) %>% 
+#     distinct()
+#   chosen_country <- geographies_list$country
+#   
+#   map <- leaflet() %>% 
+#     # basemap options
+#     addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers 
+#     
+#     #add polygon layer for selected territory border 
+#     addPolygons(data = select_map_territory, weight = 2)
+#   
+#   #save as png to use in md pdf - does not allow leaflet (html widgets)
+#   mapshot(map, file = paste0("app/data/reports/", chosen_geog, ".png"))
+#   
+# }
 
 #map 2 -> when there is CCA data - not used in html reports 
 #renderMap2 <- function(chosen_geog){
@@ -206,8 +206,8 @@ for (i in seq_along(tierIITEST)) {
   {writeInsightsDat(tierIITEST[i])}
 }
 
-writeBibs("Brazil")
+writeBibs("United States")
 
 writeInsightsNOdat("Fiji")
-writeInsightsDat("Belize")
+writeInsightsDat("United States")
 
