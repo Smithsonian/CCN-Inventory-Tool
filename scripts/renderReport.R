@@ -13,12 +13,12 @@ library(readr)
 #write bibs 
 writeBibs <- function(chosen_geog){
   
-  citations_geog <- territory_citations %>% filter(territory == chosen_geog) %>% 
+  citations_geog <- citations %>% filter(territory == chosen_geog) %>% 
     left_join(geographies_list) %>% 
     select(-territory) %>% 
     mutate(bibliography_id = str_replace_all(bibliography_id, "\\.", ""), #fixing misc formatting errors 
            bibliography_id = str_replace_all(bibliography_id, "\\ ", "_")) %>% 
-    mutate(uniqueID = if_else(is.na(study_id), bibliography_id, paste(bibliography_id, study_id, ecosystem, sep = "_")))
+    mutate(uniqueID = if_else(is.na(study_id), bibliography_id, paste(bibliography_id, study_id, sep = "_")))
   
   citations_geog <- as.BibEntry(citations_geog %>% 
                                   column_to_rownames("uniqueID"))
@@ -52,32 +52,32 @@ writeBibs <- function(chosen_geog){
 # }
 
 #map 2 -> when there is CCA data - not used in html reports 
-#renderMap2 <- function(chosen_geog){
-  select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
-    dplyr::select(territory = admin) %>% 
-    dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
-    filter(territory == chosen_geog)
-  
-  geographies_list <- allstocks %>% select(country, territory) %>% distinct()
-  
-  chosen_country <- geographies_list %>% filter(territory == chosen_geog) %>% select(country)
-  chosen_country <- as.character(chosen_country)
-  
-  chosen_map_input <- map_input %>% filter(country == chosen_country)
-  
-  map <- leaflet() %>% 
-    # basemap options
-    addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers 
-    
-    #add polygon layer for selected territory border 
-    #addPolygons(data = select_map_territory, weight = 2) %>% 
-    addCircleMarkers(data = chosen_map_input, lat = ~latitude, lng = ~longitude)
-  
-  #save as png to use in md pdf - does not allow leaflet (html widgets)
-  mapshot(map, file = paste0("app/data/reports/", chosen_geog, "2.png"))
-  
-}
-
+# #renderMap2 <- function(chosen_geog){
+#   select_map_territory <- rnaturalearth::ne_countries(returnclass = "sf", scale = "medium") %>% 
+#     dplyr::select(territory = admin) %>% 
+#     dplyr::mutate(territory = recode(territory, "United States of America" = "United States")) %>% 
+#     filter(territory == chosen_geog)
+#   
+#   geographies_list <- allstocks %>% select(country, territory) %>% distinct()
+#   
+#   chosen_country <- geographies_list %>% filter(territory == chosen_geog) %>% select(country)
+#   chosen_country <- as.character(chosen_country)
+#   
+#   chosen_map_input <- map_input %>% filter(country == chosen_country)
+#   
+#   map <- leaflet() %>% 
+#     # basemap options
+#     addTiles(group = "OSM (default)") %>% #not interactive, do not need multiple layers 
+#     
+#     #add polygon layer for selected territory border 
+#     #addPolygons(data = select_map_territory, weight = 2) %>% 
+#     addCircleMarkers(data = chosen_map_input, lat = ~latitude, lng = ~longitude)
+#   
+#   #save as png to use in md pdf - does not allow leaflet (html widgets)
+#   mapshot(map, file = paste0("app/data/reports/", chosen_geog, "2.png"))
+#   
+# }
+# 
 
 #when data inclues tier II
 writeInsightsDat <- function(chosen_geog, bib){
@@ -166,6 +166,13 @@ territory_citations <- citations %>%
   left_join(geographies_list) %>% 
   select(country, territory, everything())
 
+#remove duplicates
+
+citations <- territory_citations %>% select(-ecosystem, -country) %>% 
+  distinct()
+
+#write fixed citation table 
+write_csv(citations, "data/citations_by_territory.csv")
 
 ##RUN DEMO LOOPS ####
 
@@ -206,7 +213,11 @@ for (i in seq_along(tierIITEST)) {
   {writeInsightsDat(tierIITEST[i])}
 }
 
-writeBibs("United States")
+for (i in seq_along(tierIIgeog_list)) {
+  
+  {writeBibs(tierIIgeog_list[i])}
+}
+
 
 writeInsightsNOdat("Fiji")
 writeInsightsDat("United States")
