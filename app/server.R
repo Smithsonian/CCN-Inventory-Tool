@@ -37,8 +37,14 @@ function(input, output, session) {
   })
 
   points_subset <- reactive({
-    map_input %>% dplyr::filter(territory == input$chosen_geography)
+    # map_input %>% dplyr::filter(territory == input$chosen_geography)
       # mutate(highlight = ifelse(territory == input$chosen_geography, T, F))
+    if(nchar(input$chosen_geography)==0){
+      d <- map_input
+    } else {
+      d <- map_input %>% dplyr::filter(territory == input$chosen_geography)
+    } 
+    return(d)
   })
 
   observeEvent(input$chosen_geography, {
@@ -54,6 +60,12 @@ function(input, output, session) {
     updateSelectInput(session, "chosen_geography", selected = c("Choose" =""))
   })
   
+  ## Value Box Content ----------
+  
+  output$habitat_n <- renderText(length(unique(geography_subset()$habitat)))
+  output$country_n <- renderText(length(unique(geography_subset()$territory)))
+  output$obs_n <- renderText(nrow(points_subset()))
+  
   ## Map -------------------
 
   # Feature: Zoom options for globe or particular country
@@ -66,20 +78,26 @@ function(input, output, session) {
         # basemap options
         addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
         addTiles(group = "OSM (default)") %>%
+        setView(mean(map_input$longitude), mean(map_input$latitude), zoom = 1) %>% 
+        # fitBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4]) %>% 
+        
+        # change global view to be single country points
+        # where point size is determined by the number of samples in a country
+        # or statement of "no data"
         
         # add data points (global cca samples)
-        addCircleMarkers(data = map_input %>% filter(carbon_pool == "soil"),
-                         lng = ~longitude, lat = ~latitude, radius = 2,
-                         label = ~paste(habitat, carbon_pool, "data", sep = " "),
-                         group = "Soil Samples", 
-                         # eventually have veg be plotted separately for color coding
-                         color = "#7570b3") %>% 
-        addCircleMarkers(data = map_input %>% filter(carbon_pool == "vegetation"),
-                         lng = ~longitude, lat = ~latitude, radius = 2,
-                         label = ~paste(habitat, carbon_pool, "data", sep = " "),
-                         group = "Plant Surveys", 
-                         # eventually have veg be plotted separately for color coding
-                         color = "#1b9e77") %>% 
+        # addCircleMarkers(data = map_input %>% filter(carbon_pool == "soil"),
+        #                  lng = ~longitude, lat = ~latitude, radius = 2,
+        #                  label = ~paste(habitat, carbon_pool, "data", sep = " "),
+        #                  group = "Soil Samples", 
+        #                  # eventually have veg be plotted separately for color coding
+        #                  color = "#7570b3") %>% 
+        # addCircleMarkers(data = map_input %>% filter(carbon_pool == "vegetation"),
+        #                  lng = ~longitude, lat = ~latitude, radius = 2,
+        #                  label = ~paste(habitat, carbon_pool, "data", sep = " "),
+        #                  group = "Plant Surveys", 
+        #                  # eventually have veg be plotted separately for color coding
+        #                  color = "#1b9e77") %>% 
         #add layer options 
         addLayersControl(
           baseGroups = c("OSM (default)", "CartoDB"),
@@ -101,6 +119,20 @@ function(input, output, session) {
     
     # using leafletProxy to call in original map 
     leafletProxy(mapId = "map") %>%
+      clearMarkers() %>% 
+      addCircleMarkers(data = points_subset() %>% filter(carbon_pool == "soil"),
+                       lng = ~longitude, lat = ~latitude, radius = 2,
+                       label = ~paste(habitat, carbon_pool, "data", sep = " "),
+                       group = "Soil Samples",
+                       # eventually have veg be plotted separately for color coding
+                       color = "#7570b3") %>%
+      addCircleMarkers(data = points_subset() %>% filter(carbon_pool == "vegetation"),
+                       lng = ~longitude, lat = ~latitude, radius = 2,
+                       label = ~paste(habitat, carbon_pool, "data", sep = " "),
+                       group = "Plant Surveys",
+                       # eventually have veg be plotted separately for color coding
+                       color = "#1b9e77") %>%
+      
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4])
       # reset map layers
       # removeMarker(group = "highlight") %>%
@@ -122,29 +154,31 @@ function(input, output, session) {
  observeEvent(input$reset, {
     
    leafletProxy(mapId = "map") %>% 
-     # clearGeoJSON() %>% 
      # clearShapes() %>% 
      # clearControls() %>% 
-     fitBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4])
+     setView(mean(map_input$longitude), mean(map_input$latitude), zoom = 1) %>% 
+     # fitBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4]) %>% 
+     clearMarkers()
  })
   
  ## Plots ----------------
   
  ## Global Stock Plot
- # output$worldstockplot <- renderPlot({
- #   req(input$chosen_habitat)
- #   
- #   globalStocks(main_table, input$chosen_habitat)
- # 
- # })
  
  observeEvent(input$chosen_habitat, {
-   
-   output$worldstockplot <- renderImage({ 
-     list(src = globalStocksFig(input$chosen_habitat), height = "100%") 
-   }, 
-   deleteFile = FALSE 
-   ) 
+
+   output$worldstockplot <- renderPlot({
+     req(input$chosen_habitat)
+
+     globalStocks(main_table, input$chosen_habitat)
+
+   })
+      # static image
+   # output$worldstockplot <- renderImage({ 
+   #   list(src = globalStocksFig(input$chosen_habitat), height = "100%") 
+   # }, 
+   # deleteFile = FALSE 
+   # ) 
  })
  
  
@@ -160,7 +194,7 @@ function(input, output, session) {
      #case where there are cores available in CCA 
      #if(input$chosen_country %in% datastatus_counts$country){
      points_subset() %>% 
-       dplyr::count(carbon_pool, habitat, territory) %>% 
+       dplyr::count(carbon_pool, habitat) %>% 
        plot_ly(x = ~habitat, y = ~n, type = "bar",
                color = ~carbon_pool) %>% 
        layout(xaxis = list(title = "Habitat Type"),
@@ -190,7 +224,20 @@ function(input, output, session) {
  ## Emission Factor plot
  # what about veg?
  
- observeEvent(input$chosen_geography, { 
+ output$dynamic_output <- renderUI({
+   if (nchar(input$chosen_geography)==0) {
+     textOutput("text_prompt") # Reference to the text output
+   } else {
+     plotlyOutput("efplot") # Reference to the plot output
+   }
+ })
+
+  output$text_prompt <- renderText({
+   # Code to generate the text
+   "Please select a geography from the dropdown to view this plot."
+ })
+ 
+ # observeEvent(input$chosen_geography, { 
    output$efplot <- renderPlotly({
      # req(input$chosen_geography)
      
@@ -199,10 +246,12 @@ function(input, output, session) {
                              arrayminus = soil_TierI_mean - soil_TierI_lowerCI, color = "black"),
              name = "IPCC global value") %>% 
        add_trace(y = ~soil_TierII_mean, 
+                 # marker = list(pattern = list(shape = "x")),
                  error_y = ~list(array = soil_TierII_upperCI - soil_TierII_mean, 
                                  arrayminus = soil_TierII_mean - soil_TierII_lowerCI, color = "black"),
                  name = "Country-specific value") %>% 
        add_trace(y = ~soil_TierIII_mean, 
+                 # marker = list(pattern = list(shape = "/")),
                  error_y = ~list(array = soil_TierIII_upperCI - soil_TierIII_mean, 
                                  arrayminus = soil_TierIII_mean - soil_TierIII_lowerCI, color = "black"),
                  name = "Modeled value") %>% 
@@ -210,9 +259,8 @@ function(input, output, session) {
          # title = "",
          xaxis = list(title = "Habitat Type"),
          yaxis = list(title = "Soil Carbon Stock (Mg/ha)"))
-     
    }) 
- })
+ # })
   
   ## Activity Data
  
@@ -221,6 +269,12 @@ function(input, output, session) {
     # req(input$chosen_geography)
     
     geography_subset() %>% 
+      # need the summary for worldwide application
+      group_by(habitat) %>% 
+      summarize(area_ha = sum(area_ha),
+                area_ha_upperCI = sum(area_ha_upperCI),
+                area_ha_lowerCI = sum(area_ha_lowerCI)) %>% 
+      
       plot_ly(x = ~habitat, y = ~area_ha, type = "bar",
               # color = ~habitat, colors = "Set1",
               error_y = ~list(array = area_ha_upperCI - area_ha, 
@@ -267,7 +321,8 @@ function(input, output, session) {
                            Habitat = habitat, 
                            `Mean Soil Stock (MgC/ha)` = compiled_EF,
                            `Mean Biomass Stock (MgC/ha)` = veg_TierII_mean,
-                           `Habitat Area (ha)` = area_ha),
+                           `Habitat Area (ha)` = area_ha) %>% 
+                    select_if(~ !all(is.na(.))),
                   
                   caption = "Carbon stocks estimated for tidal wetland ecosystems.",
                   options = list(searching = TRUE,
@@ -314,6 +369,13 @@ function(input, output, session) {
   
 ## Create output to source html reports -----------------
   
+ # observeEvent(input$chosen_geography, {
+ # output$markdown <- renderUI({
+ #   knit('test_report.Rmd', quiet = TRUE)
+ #   # HTML(markdown::markdownToHTML(knit('test_report.Rmd', quiet = TRUE)))
+ # })
+ # })
+ 
   #shiny::addResourcePath()
   
   # output$report <- renderUI({

@@ -1,0 +1,26 @@
+---
+title: ""
+author: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+_The following is a test_
+
+Date: `r Sys.Date()`
+
+Selected Country: `r unique(geography_subset()$territory)`
+
+The number of samples in the selected geography is `r nrow(points_subset())`.
+
+### Overview
+
+We estimate that **`r unique(geography_subset()$territory)`** contains a mean estimate of (total carbon) megagrams sediment carbon stock. 
+
+
+
+
+

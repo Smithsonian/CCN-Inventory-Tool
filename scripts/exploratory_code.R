@@ -175,3 +175,10 @@ main_table %>%
   geom_errorbar() +
   xlab("1m Mangrove Soil Carbon Stocks (Mg/ha)") + ylab("") +
   theme_bw(base_size = 12)
+
+## Try a plotly map
+
+# https://plotly-r.com/
+
+## Interactive Drill-down Plots
+# https://stackoverflow.com/questions/64041328/multi-level-drill-down-using-plotly-in-r-shiny

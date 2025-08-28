@@ -1,0 +1,197 @@
+---
+title: "bslib UI dev"
+author: "Jaxine Wolfe"
+date: "2025-07-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(shiny)
+library(bslib)
+library(leaflet)
+```
+
+## Set up global environment
+
+```{r}
+  
+link_ccn <- tags$a(
+  shiny::icon("globe"), "Coastal Carbon Network", 
+  href = "https://serc.si.edu/coastalcarbon",
+  target = "_blank"
+)
+
+link_atlas <- tags$a(
+  shiny::icon("map"), "Explore the Atlas",
+  href = "https://shiny.si.edu/coastal_carbon_atlas/",
+  target = "_blank"
+)
+
+link_contribute <- tags$a(
+  shiny::icon("handshake"), "Contribute Data",
+  href = "https://serc.si.edu/coastalcarbon/join-the-network",
+  target = "_blank"
+)
+# other icons
+# globe-pointer, leaf, file-excel, file-export
+
+# Value boxes
+# https://bslib.shinyapps.io/build-a-box/
+vbs <- list(
+  value_box(
+    title = "Habitats",
+    value = "11",
+    # showcase = shiny::icon("chart-simple"),
+    theme = value_box_theme(bg = "#00923f", fg = "#FFFFFF")
+    # max_height = "100px"
+    # p("The 1st detail")
+  ),
+  value_box(
+    title = "Countries",
+    value = "1",
+    # showcase = shiny::icon("leaf"),
+    theme = value_box_theme(bg = "#835c31", fg = "#FFFFFF")
+    # max_height = "100px"
+    # p("The 2nd detail")
+  ),
+  value_box(
+    title = "Samples",
+    value = "789",
+    # showcase = shiny::icon("earth-americas"),
+    theme = value_box_theme(bg = "#2c409f", fg = "#FFFFFF")
+    # max_height = "100px"
+    # p("The 3th detail")
+  )
+)
+  
+
+## accordion panel test
+# items <- lapply(LETTERS, function(x) {
+#   accordion_panel(paste("Section", x), paste("Some narrative for section", x))
+# })
+# 
+# # First shown by default
+# accordion(!!!items)
+# # Nothing shown by default
+# accordion(!!!items, open = FALSE)
+# # Everything shown by default
+# accordion(!!!items, open = TRUE)
+# 
+# # Show particular sections
+# accordion(!!!items, open = "Section B")
+# accordion(!!!items, open = c("Section A", "Section B"))
+
+# https://rstudio.github.io/bslib/articles/tooltips-popovers/index.html
+```
+
+## App
+
+```{r}
+
+ui <- page_navbar(
+  theme = bs_theme(bootswatch = "cosmo"),
+  title = "Coastal Carbon Inventory",
+  # sidebar = "Dashboard",
+  # navbar_options()
+  
+  # Define pages
+    nav_panel("Dashboard", 
+            layout_columns(
+              # A negative number in widths creates white space
+              col_widths = c(6,6,6,6),
+              row_heights = c(1,1),
+              
+              card(full_screen = TRUE,
+                   layout_sidebar(sidebar = sidebar(
+                      p("Welcome to the Coastal Carbon Inventory Tool!"),
+                          # select a country
+                          selectInput(inputId = "chosen_geography",
+                                      label = "Select a geography",
+                                      choices = c(Choose='', unique(main_table$territory) %>% sort()),
+                                      selectize = F
+                          ),
+                          tags$b("Reset map to world view"), 
+                          actionButton(
+                            inputId = "reset",
+                            label = "Reset",
+                            class = "btn-info"
+                          ), 
+                          helpText("Please direct any questions or suggestions to CoastalCarbon@si.edu"),
+                          img(src = "SI_logo_no_text.png", height = "50px",
+                              style="display: block; margin-left: auto; margin-right: auto;")
+                     ),
+                     # Value boxes
+                     layout_column_wrap(width = 1/3, !!!vbs),
+                     # Map
+                     leafletOutput("map"))
+              ),
+              
+              navset_card_tab(full_screen = TRUE,
+                # title = "",
+                # sidebar = sidebar(""),
+                nav_panel("Habitat Area", "Figure of habitat area"),
+                nav_panel("Available Data", "Figure of available data"),
+                nav_panel("Carbon Stocks", "Data not available"), # followed by a blurb
+                nav_panel("Summary Table", "Tab 4 content")),
+              
+              card(full_screen = TRUE,
+                   # class = "d-flex justify-content-between",
+                   card_header("Global plots",
+                               # radioButtons("chosen_habita", "Select a habitat",
+                               #              choices = c("mangrove", "marsh", "seagrass"),
+                               #              selected = "mangrove",
+                               #              inline = T)
+                               ),
+                   card_body(
+                     # class = "align-items-center",
+                     span(
+                       "This is a cool plot",
+                       tooltip(
+                         shiny::icon("circle-info"),
+                         "Information about the cool plot",
+                         placement = "bottom"
+                       )
+                     )
+                   )
+              ),
+              
+              card(full_screen = TRUE, 
+                   # scrollable by default (bless)
+                   card_header("Report"),
+                   lorem::ipsum(paragraphs = 3, sentences = 5))
+            )),
+  
+  nav_panel(title = "About",
+            # includeMarkdown("about.md")
+            ),
+  
+  nav_spacer(),
+  nav_item(title = "Contact Us", 
+           align = "right"),
+  nav_menu(
+    title = "Links",
+    align = "right",
+    nav_item(link_ccn),
+    nav_item(link_atlas),
+    nav_item(link_contribute)
+    # github? or how to contact us
+  )
+)
+
+server <- function(input, output) {
+  output$time <- renderText({
+    invalidateLater(1000)
+    format(Sys.time())
+  })
+  
+  output$map <- renderLeaflet({
+    leaflet() %>% addTiles() 
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
