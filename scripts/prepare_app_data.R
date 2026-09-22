@@ -10,7 +10,7 @@ library(tidyr)
 library(sf)
 
 # source utilities
-source("app/utils.R")
+source("app/R/utils.R")
 
 ## Load Data ####
 

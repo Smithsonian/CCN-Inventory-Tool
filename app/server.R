@@ -24,14 +24,14 @@ function(input, output, session) {
   
   geo_bounds <- reactive({
     # map_polys %>% dplyr::filter(territory == input$chosen_geography)
-    terr_bounds %>% dplyr::filter(territory == input$chosen_geography)
+    terr_bounds[which(terr_bounds$territory == input$chosen_geography),]
   })
   
   geography_subset <- reactive({
     if(nchar(input$chosen_geography)==0){
       stocktable <- main_table
     } else {
-      stocktable <- main_table %>% dplyr::filter(territory == input$chosen_geography)
+      stocktable <- main_table[which(main_table$territory == input$chosen_geography),]
     } 
     return(stocktable)
   })
@@ -42,7 +42,7 @@ function(input, output, session) {
     if(nchar(input$chosen_geography)==0){
       d <- map_input
     } else {
-      d <- map_input %>% dplyr::filter(territory == input$chosen_geography)
+      d <- map_input[which(map_input$territory == input$chosen_geography),]
     } 
     return(d)
   })
@@ -76,8 +76,9 @@ function(input, output, session) {
 
       leaflet() %>% 
         # basemap options
+        # addTiles(group = "OpenStreetMap") %>%
         addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
-        addTiles(group = "OSM (default)") %>%
+        addProviderTiles("Esri.WorldImagery", group = "Satellite") %>%
         setView(mean(map_input$longitude), mean(map_input$latitude), zoom = 1) %>% 
         # fitBounds(world_bounds[1], world_bounds[2], world_bounds[3], world_bounds[4]) %>% 
         
@@ -100,7 +101,7 @@ function(input, output, session) {
         #                  color = "#1b9e77") %>% 
         #add layer options 
         addLayersControl(
-          baseGroups = c("OSM (default)", "CartoDB"),
+          baseGroups = c("CartoDB", "Satellite"),
           overlayGroups = c("Soil Samples", "Plant Surveys"), # "Border"
           options = layersControlOptions(collapsed = FALSE)
         )
@@ -340,11 +341,11 @@ function(input, output, session) {
   output$downloadReport <- downloadHandler(
     # name of exported file
     filename = function(){
-      paste0(input$chosen_geography, "_Inventory_Report_", Sys.Date(), ".html")
+      paste0(input$chosen_geography, "_BCI_Report_", Sys.Date(), ".pdf")
     },
-    # copy PDF file from the folder containing the pre-generated reports
+    # copy PDF or HTML file from the folder containing the pre-generated reports
     content = function(file) {
-      file.copy(paste0("www/reports/", input$chosen_geography, "_Report.html"), file)
+      file.copy(paste0("www/reports/", input$chosen_geography, "_Detailed_Insights.pdf"), file)
       
       # Potential add: Informational popup or handling for when a country name doesn't exist (ideally this wouldn't happen though)
       # Potential add: option to download PDF or HTML version

@@ -18,22 +18,31 @@ library(readr)
 library(tidyr)
 library(ggplot2)
 library(knitr)
-library(sf)
 library(bslib)
+library(markdown)
 # library(geojsonsf)
 # library(shinyBS)
 
 # source utilities
-source("utils.R")
+# source("utils.R")
+
+if(system(command = "hostname", intern = T) == "si-shiny2.si.edu"){
+  library(sf, lib.loc = Sys.getenv("r_shiny_library"))  
+} else {
+  library(sf)
+}
 
 ## Data ----
 
 # load data
 app_data <- readRDS("data/app_data.rds")
 
+# shortlist <- c("Australia", "Belize", "Thailand", "Tanzania", "Canada")
+# %>% filter(territory %in% shortlist)
+
 # Extract components from RDS
 main_table <- app_data$main_table %>% arrange(territory, habitat)
-map_input <- app_data$map_input %>% filter(habitat %in% c("marsh", "mangrove", "seagrass"))
+map_input <- app_data$map_input %>% filter(habitat %in% c("marsh", "mangrove", "seagrass")) 
 # map_polys <- app_data$map_polys
 terr_bounds <- app_data$terr_bounds
 
